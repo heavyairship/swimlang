@@ -1,4 +1,40 @@
-class Visitor(object):
+# SimpleLang
+#
+# Grammar:
+#
+# E -> (expressions)
+# | (E)
+# | B
+# | A
+# | while(B): E
+# | if(B): E else: E
+# | V := E
+# | E; E
+#
+# B -> (boolean expressions)
+# | True
+# | False
+# | V
+# | (B & B)
+# | (B | B)
+# | !B
+# | (A = A)
+# | (A != A)
+# | (A < A)
+# | (A <= A)
+# | (A > A)
+# | (A >= A)
+#
+# A -> (arithmetic expressions)
+# | N
+# | V
+# | (A + A)
+# | (A * A)
+#
+# V -> (variable expressions)
+# | [a-zA-Z0-9]+
+
+class SLVisitor(object):
     def visitAdd(self, node):
         pass
     def visitMul(self, node):
@@ -6,7 +42,7 @@ class Visitor(object):
     def __call__(self, node):
         return node.accept(self)
 
-class Printer(Visitor):
+class Printer(SLVisitor):
     def __init__(self):
         self.indent = ""
     def visitInt(self, node):
@@ -94,7 +130,7 @@ class Printer(Visitor):
             raise TypeError
         return "%s;\n%s" % (self(node.first), self(node.second))
 
-class Evaluator(Visitor):
+class Evaluator(SLVisitor):
     state = {}
     def visitInt(self, node):
         if not type(node) is Int:
@@ -334,6 +370,12 @@ class Var(Node):
     def __init__(self, val):
         if not type(val) is str:
             raise TypeError
+        for c in val:
+            ordc = ord(c.lower())
+            alpha = ordc in range(ord('a'), ord('z') + 1)
+            numeric = ordc in range(ord('0'), ord('9') + 1)
+            if not (alpha or numeric):
+                raise TypeError
         self.val = val
     def accept(self, visitor):
         return visitor.visitVar(self)
