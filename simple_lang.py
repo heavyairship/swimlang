@@ -42,7 +42,7 @@ class SLVisitor(object):
     def __call__(self, node):
         return node.accept(self)
 
-class Printer(SLVisitor):
+class SLPrinter(SLVisitor):
     def __init__(self):
         self.indent = ""
     def visitInt(self, node):
@@ -130,7 +130,7 @@ class Printer(SLVisitor):
             raise TypeError
         return "%s;\n%s" % (self(node.first), self(node.second))
 
-class Evaluator(SLVisitor):
+class SLEvaluator(SLVisitor):
     state = {}
     def visitInt(self, node):
         if not type(node) is Int:
@@ -198,12 +198,12 @@ class Evaluator(SLVisitor):
     def visitAssign(self, node):
         if not type(node) is Assign:
             raise TypeError
-        Evaluator.state[node.var.val] = self(node.expr)
-        return Evaluator.state[node.var.val]
+        SLEvaluator.state[node.var.val] = self(node.expr)
+        return SLEvaluator.state[node.var.val]
     def visitVar(self, node):
         if not type(node) is Var:
             raise TypeError
-        return Evaluator.state[node.val]
+        return SLEvaluator.state[node.val]
     def visitSeq(self, node):
         if not type(node) is Seq:
             raise TypeError
@@ -390,7 +390,7 @@ class Seq(Node):
         return visitor.visitSeq(self)
 
 if __name__ == "__main__":
-    visitors = [Printer(), Evaluator()]
+    visitors = [SLPrinter(), SLEvaluator()]
 
     # Test arithmetic/bool statements
     print("**********")
