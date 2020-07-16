@@ -389,6 +389,14 @@ class Seq(Node):
     def accept(self, visitor):
         return visitor.visitSeq(self)
 
+class SLTypeChecker(object):
+    # TODO: implement!
+    pass
+
+class SLParser(object):
+    # TODO: implement!
+    pass
+
 if __name__ == "__main__":
     visitors = [SLPrinter(), SLEvaluator()]
 
