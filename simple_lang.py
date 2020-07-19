@@ -37,14 +37,14 @@
 # | :=
 #
 # b ->
-# | true 
-# | false
+# | True 
+# | False
 #
 # n ->
 # | [0-9]+
 #
 # v -> (variable term)
-# | [a-zA-Z]+[a-zA-Z0-9]/{true, false}
+# | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
 
@@ -109,8 +109,8 @@ class TokenType(enum.Enum):
     MUL = "*"
     SEQ = ";"
     ASSIGN = ":="
-    TRUE = "true"
-    FALSE = "false"
+    TRUE = "True"
+    FALSE = "False"
     INT = enum.auto()
     VAR = enum.auto()
 
@@ -317,20 +317,19 @@ class Parser(object):
             self.match(TokenType.COLON)
             e2 = self.E()
             self.match(TokenType.ELSE)
+            self.match(TokenType.COLON)
             e3 = self.E()
             return If(e, e2, e3)
         else:
             raise ValueError
     def S(self):
         l = self.lookahead()
-        if l is None:
-            return None
-        elif l in Parser.first_BOP:
+        if l in Parser.first_BOP:
             bop = self.BOP()
             e = self.E()
             return (bop, e)
         else:
-            raise ValueError
+            return None
     def T(self):
         l = self.lookahead()
         if l == TokenType.LEFT_PAREN:
@@ -417,10 +416,6 @@ class Parser(object):
 class Node(object):
     def accept(self, visitor):
         pass
-    def numeric(self, o):
-        return type(o) in [Int, Add, Mul, Var]
-    def boolean(self, o):
-        return type(o) in [Eq, NotEq, Lt, Lte, Gt, Gte, Bool, And, Or, Not, Var]
 
 class Int(Node):
     def __init__(self, val):
@@ -432,7 +427,7 @@ class Int(Node):
 
 class Add(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -441,7 +436,7 @@ class Add(Node):
 
 class Mul(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -450,7 +445,7 @@ class Mul(Node):
 
 class Eq(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -459,7 +454,7 @@ class Eq(Node):
 
 class NotEq(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -468,7 +463,7 @@ class NotEq(Node):
 
 class Lt(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -477,7 +472,7 @@ class Lt(Node):
 
 class Lte(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -486,7 +481,7 @@ class Lte(Node):
 
 class Gt(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -495,7 +490,7 @@ class Gt(Node):
 
 class Gte(Node):
     def __init__(self, first, second):
-        if not (self.numeric(first) and self.numeric(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -512,7 +507,7 @@ class Bool(Node):
 
 class And(Node):
     def __init__(self, first, second):
-        if not (self.boolean(first) and self.boolean(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -521,7 +516,7 @@ class And(Node):
 
 class Or(Node):
     def __init__(self, first, second):
-        if not (self.boolean(first) and self.boolean(second)):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.first = first
         self.second = second
@@ -530,7 +525,7 @@ class Or(Node):
 
 class Not(Node):
     def __init__(self, arg):
-        if not (self.boolean(arg)):
+        if not issubclass(type(arg), Node):
             raise TypeError
         self.arg = arg
     def accept(self, visitor):
@@ -538,9 +533,7 @@ class Not(Node):
 
 class If(Node):
     def __init__(self, cond, first, second):
-        if not self.boolean(cond):
-            raise TypeError
-        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
+        if not (issubclass(type(cond), Node) and issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
         self.cond = cond
         self.first = first
@@ -550,9 +543,7 @@ class If(Node):
 
 class While(Node):
     def __init__(self, cond, body):
-        if not self.boolean(cond):
-            raise TypeError
-        if not issubclass(type(body), Node):
+        if not (issubclass(type(cond), Node) and issubclass(type(body), Node)):
             raise TypeError
         self.cond = cond
         self.body = body
@@ -715,7 +706,7 @@ class Printer(Visitor):
     def visit_assign(self, node):
         if not type(node) is Assign:
             raise TypeError
-        return "%s = %s" % (self(node.var), self(node.expr))
+        return "%s := %s" % (self(node.var), self(node.expr))
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
@@ -723,7 +714,7 @@ class Printer(Visitor):
     def visit_seq(self, node):
         if not type(node) is Seq:
             raise TypeError
-        return "%s;\n%s" % (self(node.first), self(node.second))
+        return "%s;\n%s%s" % (self(node.first), self.indent, self(node.second))
 
 ##################################################################################
 # AST evaluator
@@ -875,11 +866,11 @@ if __name__ == "__main__":
     whileb := 10;
     if(whileb >= 0):
         x := 1;
-        y := 2 > 1;
+        y := 2 > 1
     else:
         p := 1 + 1;
-        z = 2 > 2;"""
-    src = "1;2;3;4;5"
+        z := 2 > 2"""
+    src = "whileb := 10; whileb"
     tokenizer = Tokenizer(src)
     tokens = tokenizer.tokenize()
     print(src)
