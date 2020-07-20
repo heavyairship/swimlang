@@ -20,9 +20,9 @@
 # FixMe: add ++ and --
 #
 # BOP ->
-# | &
-# | |
-# | =
+# | &&
+# | ||
+# | ==
 # | !=
 # | <
 # | <=
@@ -102,9 +102,9 @@ class TokenType(enum.Enum):
     IF = "if"
     ELSE = "else"
     NOT = "!"
-    AND = "&"
-    OR = "|"
-    EQ = "="
+    AND = "&&"
+    OR = "||"
+    EQ = "=="
     NOT_EQ = "!="
     LT = "<"
     LTE = "<="
@@ -273,10 +273,13 @@ class Parser(object):
         TokenType.TRUE,
         TokenType.FALSE
     ])
+
     first_T = frozenset([
         TokenType.INT,
         TokenType.VAR]).union(first_b)
+
     first_UOP = frozenset([TokenType.NOT])
+
     first_BOP = frozenset([
         TokenType.AND,
         TokenType.OR,
@@ -346,30 +349,40 @@ class Parser(object):
             e3 = self.E()
             return If(e, e2, e3)
         else:
+            print(l)
             raise ValueError
 
     def E(self):
-        e = self.E_helper()
+        # FixMe: cleanup
+        stack = []
+        stack.append(self.E_helper())
         while self.lookahead() in Parser.first_BOP:
-            bop = self.BOP()
-            e2 = self.E_helper()
-            e = bop(e, e2)
-        if self.lookahead() is None:
-            return e
-        else:
-            raise ValueError
-
-        while True:
-            e = self.E_helper()
-            l = self.lookahead()
-            if l in Parser.first_BOP:
-                bop = self.BOP()
-                e2 = self.E_helper()
-                e = bop(e, e2)
-            elif l is None:
-                return e
-            else:
-                raise ValueError
+            stack.append(self.BOP())
+            stack.append(self.E_helper())
+        while len(stack) > 3:
+            prec = None
+            end = True
+            for i in range(len(stack)):
+                s = stack[i]
+                if type(s) == type and issubclass(s, BinOp):
+                    if prec is not None and s.precedence <= prec:
+                        e1 = stack[i-3]
+                        bop = stack[i-2]
+                        e2 = stack[i-1]
+                        del stack[i-3: i]
+                        stack.insert(i-3, bop(e1, e2))
+                        end = False
+                        break
+                    else:
+                        prec = s.precedence
+            if end:
+                break
+        while len(stack) >= 3:
+            e2 = stack.pop()
+            bop = stack.pop()
+            e = stack.pop()
+            stack.append(bop(e, e2))
+        return stack.pop()
 
     def T(self):
         l = self.lookahead()
@@ -442,11 +455,16 @@ class Parser(object):
         elif l == TokenType.FALSE:
             self.match(TokenType.FALSE)
             return False
+        else:
+            raise ValueError
 
     def parse(self):
         if self.done():
             return None
-        return self.E()
+        e = self.E()
+        if not self.done():
+            raise ValueError
+        return e
 
 ##################################################################################
 # AST types
@@ -454,6 +472,11 @@ class Parser(object):
 
 
 class Node(object):
+    def accept(self, visitor):
+        pass
+
+
+class BinOp(Node):
     def accept(self, visitor):
         pass
 
@@ -468,7 +491,9 @@ class Int(Node):
         return visitor.visit_int(self)
 
 
-class Add(Node):
+class Add(BinOp):
+    precedence = 5
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -479,7 +504,9 @@ class Add(Node):
         return visitor.visit_add(self)
 
 
-class Mul(Node):
+class Mul(BinOp):
+    precedence = 6
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -490,7 +517,9 @@ class Mul(Node):
         return visitor.visit_mul(self)
 
 
-class Eq(Node):
+class Eq(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -501,7 +530,9 @@ class Eq(Node):
         return visitor.visit_eq(self)
 
 
-class NotEq(Node):
+class NotEq(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -512,7 +543,9 @@ class NotEq(Node):
         return visitor.visit_not_eq(self)
 
 
-class Lt(Node):
+class Lt(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -523,7 +556,9 @@ class Lt(Node):
         return visitor.visit_lt(self)
 
 
-class Lte(Node):
+class Lte(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -534,7 +569,9 @@ class Lte(Node):
         return visitor.visit_lte(self)
 
 
-class Gt(Node):
+class Gt(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -545,7 +582,9 @@ class Gt(Node):
         return visitor.visit_gt(self)
 
 
-class Gte(Node):
+class Gte(BinOp):
+    precedence = 4
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -566,7 +605,9 @@ class Bool(Node):
         return visitor.visit_bool(self)
 
 
-class And(Node):
+class And(BinOp):
+    precedence = 3
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -577,7 +618,9 @@ class And(Node):
         return visitor.visit_and(self)
 
 
-class Or(Node):
+class Or(BinOp):
+    precedence = 2
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -621,7 +664,9 @@ class While(Node):
         return visitor.visit_while(self)
 
 
-class Assign(Node):
+class Assign(BinOp):
+    precedence = 1
+
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -646,7 +691,9 @@ class Var(Node):
         return visitor.visit_var(self)
 
 
-class Seq(Node):
+class Seq(BinOp):
+    precedence = 0
+
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -736,42 +783,42 @@ class Printer(Visitor):
     def visit_add(self, node):
         if not type(node) is Add:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '+', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.ADD.value, self(node.second))
 
     def visit_mul(self, node):
         if not type(node) is Mul:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '*', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.MUL.value, self(node.second))
 
     def visit_eq(self, node):
         if not type(node) is Eq:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '==', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.EQ.value, self(node.second))
 
     def visit_not_eq(self, node):
         if not type(node) is NotEq:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '!=', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.NOT_EQ.value, self(node.second))
 
     def visit_lt(self, node):
         if not type(node) is Lt:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '<', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.LT.value, self(node.second))
 
     def visit_lte(self, node):
         if not type(node) is Lte:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '<=', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.LTE.value, self(node.second))
 
     def visit_gt(self, node):
         if not type(node) is Gt:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '>', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.GT.value, self(node.second))
 
     def visit_gte(self, node):
         if not type(node) is Gte:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '>=', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.GTE.value, self(node.second))
 
     def visit_bool(self, node):
         if not type(node) is Bool:
@@ -781,12 +828,12 @@ class Printer(Visitor):
     def visit_and(self, node):
         if not type(node) is And:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '&', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.AND.value, self(node.second))
 
     def visit_or(self, node):
         if not type(node) is Or:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), '|', self(node.second))
+        return "(%s %s %s)" % (self(node.first), TokenType.OR.value, self(node.second))
 
     def visit_if(self, node):
         if not type(node) is If:
@@ -803,7 +850,7 @@ class Printer(Visitor):
     def visit_not(self, node):
         if not type(node) is Not:
             raise TypeError
-        return '!%s' % self(node.arg)
+        return '%s%s' % (TokenType.NOT.value, self(node.arg))
 
     def visit_while(self, node):
         if not type(node) is While:
@@ -818,7 +865,7 @@ class Printer(Visitor):
     def visit_assign(self, node):
         if not type(node) is Assign:
             raise TypeError
-        return "%s := %s" % (self(node.var), self(node.expr))
+        return "%s %s %s" % (self(node.var), TokenType.ASSIGN.value, self(node.expr))
 
     def visit_var(self, node):
         if not type(node) is Var:
@@ -828,7 +875,7 @@ class Printer(Visitor):
     def visit_seq(self, node):
         if not type(node) is Seq:
             raise TypeError
-        return "%s;\n%s%s" % (self(node.first), self.indent, self(node.second))
+        return "%s%s\n%s%s" % (self(node.first), TokenType.SEQ.value, self.indent, self(node.second))
 
 ##################################################################################
 # AST evaluator
@@ -950,6 +997,38 @@ class TypeChecker(Visitor):
 if __name__ == "__main__":
     visitors = [Printer(), Evaluator()]
 
+    # Test tokenizer/parser
+    print("**********")
+    src = """
+count := 0;
+y := 1;
+while(count < 10):
+    count := count + 1;
+    if(2 < count && count < 7):
+        y := y + 0
+    else:
+        y := y + 1
+; 
+y
+"""
+# src = "whileb := 10; whileb"
+# src = "if(True): 1 else: 2"
+# src = """
+# if(False):
+#    1;
+#    y := 2
+# else:
+#    z := 3 > 2"""
+# src = "x:=1;y:=2"
+# src = "x := 1+1 == 2 && 2 + 2 == 4; y := 1"
+# src = "1+1; 1+1==3"
+    tokenizer = Tokenizer(src)
+    tokens = tokenizer.tokenize()
+    parser = Parser(tokens)
+    node = parser.parse()
+    for v in visitors:
+        print(v(node))
+
     # Test arithmetic/bool statements
     print("**********")
     node1 = Mul(Int(2), Int(3))  # 6
@@ -996,25 +1075,3 @@ if __name__ == "__main__":
     node4 = Seq(node1, node3)
     for v in visitors:
         print(v(node4))
-
-    src = """
-    whileb := 10;
-    if(whileb >= 0):
-        x := 1;
-        y := 2 > 1
-    else:
-        p := 1 + 1;
-        z := 2 > 2"""
-    src = "whileb := 10; whileb"
-    tokenizer = Tokenizer(src)
-    tokens = tokenizer.tokenize()
-    print(src)
-    print("[")
-    for t in tokens:
-        print("\t" + t.typ.name + ("("+str(t.val)+")" if t.val or t.val == 0 else ""))
-    print("]")
-    print("**********")
-    parser = Parser(tokens)
-    node = parser.parse()
-    for v in visitors:
-        print(v(node))
