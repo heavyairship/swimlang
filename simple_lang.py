@@ -372,7 +372,8 @@ class Parser(object):
         while self.lookahead() in Parser.first_BOP:
             stack.append(self.BOP())
             stack.append(self.E_helper())
-        while len(stack) > 3:
+        end = False
+        while not end:
             prec = None
             end = True
             for i in range(len(stack)):
@@ -388,8 +389,6 @@ class Parser(object):
                         break
                     else:
                         prec = s.precedence
-            if end:
-                break
         while len(stack) >= 3:
             e2 = stack.pop()
             bop = stack.pop()
