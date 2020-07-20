@@ -3,17 +3,14 @@
 # Grammar:
 #
 # E ->
-# | T S
-# | UOP T
+# | T
+# | (E)
+# | UOP E
 # | while(E): E
 # | if(E): E else: E
-#
-# S ->
-# | ε
-# | BOP E
+# | E BOP T
 #
 # T ->
-# | (E)
 # | n
 # | b
 # | v
@@ -222,7 +219,7 @@ class Tokenizer(object):
             return None
         while not self.done():
             if self.match(TokenType.NOT_EQ.value):
-                self.emit(TokenType.NO_EQ)
+                self.emit(TokenType.NOT_EQ)
             elif self.match(TokenType.LTE.value):
                 self.emit(TokenType.LTE)
             elif self.match(TokenType.GTE.value):
@@ -277,7 +274,6 @@ class Parser(object):
         TokenType.FALSE
     ])
     first_T = frozenset([
-        TokenType.LEFT_PAREN,
         TokenType.INT,
         TokenType.VAR]).union(first_b)
     first_UOP = frozenset([TokenType.NOT])
@@ -316,19 +312,19 @@ class Parser(object):
             return None
         return tokens[self.idx].typ
 
-    def E(self):
+    def E_helper(self):
         l = self.lookahead()
         if l in Parser.first_T:
             t = self.T()
-            s = self.S()
-            if s is None:
-                return t
-            bop = s[0]
-            t2 = s[1]
-            return bop(t, t2)
+            return t
+        elif l == TokenType.LEFT_PAREN:
+            self.match(TokenType.LEFT_PAREN)
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return e
         elif l in Parser.first_UOP:
             uop = self.UOP()
-            t = self.T()
+            e = self.E()
             return uop(t)
         elif l == TokenType.WHILE:
             self.match(TokenType.WHILE)
@@ -352,23 +348,32 @@ class Parser(object):
         else:
             raise ValueError
 
-    def S(self):
-        l = self.lookahead()
-        if l in Parser.first_BOP:
+    def E(self):
+        e = self.E_helper()
+        while self.lookahead() in Parser.first_BOP:
             bop = self.BOP()
-            e = self.E()
-            return (bop, e)
+            e2 = self.E_helper()
+            e = bop(e, e2)
+        if self.lookahead() is None:
+            return e
         else:
-            return None
+            raise ValueError
+
+        while True:
+            e = self.E_helper()
+            l = self.lookahead()
+            if l in Parser.first_BOP:
+                bop = self.BOP()
+                e2 = self.E_helper()
+                e = bop(e, e2)
+            elif l is None:
+                return e
+            else:
+                raise ValueError
 
     def T(self):
         l = self.lookahead()
-        if l == TokenType.LEFT_PAREN:
-            self.match(TokenType.LEFT_PAREN)
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return e
-        elif l == TokenType.INT:
+        if l == TokenType.INT:
             n = self.match(TokenType.INT)
             return Int(n.val)
         elif l in Parser.first_b:
