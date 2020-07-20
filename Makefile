@@ -1,3 +1,6 @@
+# FixMe: organize this repo properly with setup.py, etc.
+# FixMe: add README.md
+
 PYTHON = /usr/bin/python3
 
 check:
