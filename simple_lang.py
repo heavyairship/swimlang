@@ -94,9 +94,15 @@ class Interpreter(object):
     def __init__(self, src):
         self.src = src
 
-    def interpret(self):
+    def interpret(self, verbose=False):
         tokens = Tokenizer(self.src).tokenize()
         ast = Parser(tokens).parse()
+        if verbose:
+            print("\n*********************")
+            print("Parsed the following:")
+            print("*********************")
+            print(Printer()(ast))
+            print("*********************\n")
         res = Evaluator()(ast)
         return res
 
@@ -1010,7 +1016,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-f", "--file", dest="filename",
                         help="path to SimpleLang file", type=str, required=True)
+    parser.add_argument("-v", "--verbose", dest="verbose",
+                        help="run in verbose mode", action='store_true')
     args = parser.parse_args()
     with open(args.filename) as f:
         src = f.read()
-        print(Interpreter(src).interpret())
+        print(Interpreter(src).interpret(verbose=args.verbose))

@@ -4,7 +4,7 @@
 PYTHON = /usr/bin/python3
 
 check:
-	$(PYTHON) test.py && $(PYTHON) simple_lang.py --file test.sl 
+	$(PYTHON) test.py && $(PYTHON) simple_lang.py --file test.sl --verbose
 
 clean:
 	rm -rf __pycache__ *.pyc
