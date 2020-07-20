@@ -44,6 +44,7 @@
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
+import argparse
 
 ##################################################################################
 # Utility functions
@@ -87,6 +88,17 @@ def isspace(val):
 ##################################################################################
 # Interpreter
 ##################################################################################
+
+
+class Interpreter(object):
+    def __init__(self, src):
+        self.src = src
+
+    def interpret(self):
+        tokens = Tokenizer(self.src).tokenize()
+        ast = Parser(tokens).parse()
+        res = Evaluator()(ast)
+        return res
 
 ##################################################################################
 # Tokenizer
@@ -139,6 +151,8 @@ KEYWORDS = [
     TokenType.ELSE.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value
+
+
 ]
 
 
@@ -152,7 +166,7 @@ class Tokenizer(object):
     def peek(self, n=1):
         if self.idx+n > self.end:
             return None
-        return self.src[self.idx:self.idx+n]
+        return self.src[self.idx: self.idx+n]
 
     def at(self, n):
         if n >= self.end:
@@ -260,8 +274,7 @@ class Tokenizer(object):
                 pass
             else:
                 raise ValueError
-        tokens = self.tokens
-        return tokens
+        return self.tokens
 
 ##################################################################################
 # Parser/AST generator
@@ -304,7 +317,7 @@ class Parser(object):
     def match(self, t):
         if self.done():
             raise ValueError
-        out = tokens[self.idx]
+        out = self.tokens[self.idx]
         if out.typ != t:
             raise ValueError
         self.idx += 1
@@ -313,7 +326,7 @@ class Parser(object):
     def lookahead(self):
         if self.done():
             return None
-        return tokens[self.idx].typ
+        return self.tokens[self.idx].typ
 
     def E_helper(self):
         l = self.lookahead()
@@ -995,83 +1008,10 @@ class TypeChecker(Visitor):
 
 
 if __name__ == "__main__":
-    visitors = [Printer(), Evaluator()]
-
-    # Test tokenizer/parser
-    print("**********")
-    src = """
-count := 0;
-y := 1;
-while(count < 10):
-    count := count + 1;
-    if(2 < count && count < 7):
-        y := y + 0
-    else:
-        y := y + 1
-; 
-y
-"""
-# src = "whileb := 10; whileb"
-# src = "if(True): 1 else: 2"
-# src = """
-# if(False):
-#    1;
-#    y := 2
-# else:
-#    z := 3 > 2"""
-# src = "x:=1;y:=2"
-# src = "x := 1+1 == 2 && 2 + 2 == 4; y := 1"
-# src = "1+1; 1+1==3"
-    tokenizer = Tokenizer(src)
-    tokens = tokenizer.tokenize()
-    parser = Parser(tokens)
-    node = parser.parse()
-    for v in visitors:
-        print(v(node))
-
-    # Test arithmetic/bool statements
-    print("**********")
-    node1 = Mul(Int(2), Int(3))  # 6
-    node2 = Add(Int(2), Int(3))  # 5
-    node3 = Add(node1, Mul(node1, node2))
-    node4 = Eq(Int(31), node3)
-    node5 = Or(node4, Eq(Int(1), Int(1)))
-    node6 = And(Not(node5), node5)
-    for v in visitors:
-        print(v(node6))
-
-    # Test if statements
-    print("**********")
-    node1 = If(Bool(True), Bool(True), Int(2))
-    node2 = If(Bool(False), node1, Int(3))
-    node3 = If(Bool(True), node2, node2)
-    for v in visitors:
-        print(v(node2))
-
-    # Test assign
-    print("**********")
-    node1 = Assign(Var("x"), Add(Int(1), Int(1)))
-    for v in visitors:
-        print(v(node1))
-
-    # Test seq
-    print("**********")
-    node1 = Assign(Var("x"), Add(Int(1), Int(1)))
-    node2 = Assign(Var("b"), Bool(True))
-    node3 = Assign(Var("y"), Add(Var("x"), Int(10)))
-    node4 = Assign(Var("y"), Add(Var("x"), Int(20)))
-    node5 = If(Var("b"), node3, node4)
-    node6 = Seq(node1, node2)
-    node7 = Seq(node5, Var("y"))
-    node8 = Seq(node6, node7)
-    for v in visitors:
-        print(v(node8))
-
-    # Test while statements
-    print("**********")
-    node1 = Assign(Var("x"), Int(0))
-    node2 = Assign(Var("x"), Add(Var("x"), Int(1)))
-    node3 = While(NotEq(Var("x"), Int(10)), node2)
-    node4 = Seq(node1, node3)
-    for v in visitors:
-        print(v(node4))
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-f", "--file", dest="filename",
+                        help="path to SimpleLang file", type=str, required=True)
+    args = parser.parse_args()
+    with open(args.filename) as f:
+        src = f.read()
+        print(Interpreter(src).interpret())
