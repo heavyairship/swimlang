@@ -67,3 +67,4 @@ node3 = While(NotEq(Var("x"), Int(10)), node2)
 node4 = Seq(node1, node3)
 for v in visitors:
     print(v(node4))
+print("**********")
