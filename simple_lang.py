@@ -29,6 +29,7 @@
 # | >
 # | >=
 # | +
+# | -
 # | *
 # | ;
 # | :=
@@ -129,6 +130,7 @@ class TokenType(enum.Enum):
     GT = ">"
     GTE = ">="
     ADD = "+"
+    SUB = "-"
     MUL = "*"
     SEQ = ";"
     ASSIGN = ":="
@@ -266,6 +268,8 @@ class Tokenizer(object):
                 self.emit(TokenType.GT)
             elif self.match(TokenType.ADD.value):
                 self.emit(TokenType.ADD)
+            elif self.match(TokenType.SUB.value):
+                self.emit(TokenType.SUB)
             elif self.match(TokenType.MUL.value):
                 self.emit(TokenType.MUL)
             elif self.match(TokenType.SEQ.value):
@@ -309,6 +313,7 @@ class Parser(object):
         TokenType.GT,
         TokenType.GTE,
         TokenType.ADD,
+        TokenType.SUB,
         TokenType.MUL,
         TokenType.SEQ,
         TokenType.ASSIGN])
@@ -453,6 +458,9 @@ class Parser(object):
         elif l == TokenType.ADD:
             self.match(TokenType.ADD)
             return Add
+        elif l == TokenType.SUB:
+            self.match(TokenType.SUB)
+            return Sub
         elif l == TokenType.MUL:
             self.match(TokenType.MUL)
             return Mul
@@ -520,6 +528,19 @@ class Add(BinOp):
 
     def accept(self, visitor):
         return visitor.visit_add(self)
+
+
+class Sub(BinOp):
+    precedence = 5
+
+    def __init__(self, first, second):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
+            raise TypeError
+        self.first = first
+        self.second = second
+
+    def accept(self, visitor):
+        return visitor.visit_sub(self)
 
 
 class Mul(BinOp):
@@ -803,6 +824,11 @@ class Printer(Visitor):
             raise TypeError
         return "(%s %s %s)" % (self(node.first), TokenType.ADD.value, self(node.second))
 
+    def visit_sub(self, node):
+        if not type(node) is Sub:
+            raise TypeError
+        return "(%s %s %s)" % (self(node.first), TokenType.SUB.value, self(node.second))
+
     def visit_mul(self, node):
         if not type(node) is Mul:
             raise TypeError
@@ -912,6 +938,11 @@ class Evaluator(Visitor):
         if not type(node) is Add:
             raise TypeError
         return self(node.first) + self(node.second)
+
+    def visit_sub(self, node):
+        if not type(node) is Sub:
+            raise TypeError
+        return self(node.first) - self(node.second)
 
     def visit_mul(self, node):
         if not type(node) is Mul:
