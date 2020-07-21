@@ -33,6 +33,7 @@
 # | +
 # | -
 # | *
+# | /
 # | ;
 # | :=
 #
@@ -135,6 +136,7 @@ class TokenType(enum.Enum):
     ADD = "+"
     SUB = "-"
     MUL = "*"
+    DIV = "/"
     SEQ = ";"
     ASSIGN = ":="
     TRUE = "True"
@@ -274,6 +276,8 @@ class Tokenizer(object):
                 self.emit(TokenType.SUB)
             elif self.match(TokenType.MUL.value):
                 self.emit(TokenType.MUL)
+            elif self.match(TokenType.DIV.value):
+                self.emit(TokenType.DIV)
             elif self.match(TokenType.SEQ.value):
                 self.emit(TokenType.SEQ)
             elif self.match_keyword():
@@ -317,6 +321,7 @@ class Parser(object):
         TokenType.ADD,
         TokenType.SUB,
         TokenType.MUL,
+        TokenType.DIV,
         TokenType.SEQ,
         TokenType.ASSIGN])
 
@@ -377,7 +382,6 @@ class Parser(object):
             self.match(TokenType.END)
             return If(e, e2, e3)
         else:
-            print(l)
             raise ValueError
 
     def E(self):
@@ -468,6 +472,9 @@ class Parser(object):
         elif l == TokenType.MUL:
             self.match(TokenType.MUL)
             return Mul
+        elif l == TokenType.DIV:
+            self.match(TokenType.DIV)
+            return Div
         elif l == TokenType.SEQ:
             self.match(TokenType.SEQ)
             return Seq
@@ -558,6 +565,19 @@ class Mul(BinOp):
 
     def accept(self, visitor):
         return visitor.visit_mul(self)
+
+
+class Div(BinOp):
+    precedence = 6
+
+    def __init__(self, first, second):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
+            raise TypeError
+        self.first = first
+        self.second = second
+
+    def accept(self, visitor):
+        return visitor.visit_div(self)
 
 
 class Eq(BinOp):
@@ -726,7 +746,7 @@ class Var(Node):
     def __init__(self, val):
         if not type(val) is str:
             raise TypeError
-        if not alpha(val):
+        if not (len(val) > 0 and alpha(val[0]) and alphanumeric(val)):
             raise TypeError
         self.val = val
 
@@ -762,6 +782,9 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_mul(self, node):
+        raise NotImplementedError
+
+    def visit_div(self, node):
         raise NotImplementedError
 
     def visit_eq(self, node):
@@ -837,6 +860,11 @@ class Printer(Visitor):
         if not type(node) is Mul:
             raise TypeError
         return "(%s %s %s)" % (self(node.first), TokenType.MUL.value, self(node.second))
+
+    def visit_div(self, node):
+        if not type(node) is Div:
+            raise TypeError
+        return "(%s %s %s)" % (self(node.first), TokenType.DIV.value, self(node.second))
 
     def visit_eq(self, node):
         if not type(node) is Eq:
@@ -958,6 +986,11 @@ class Evaluator(Visitor):
         if not type(node) is Mul:
             raise TypeError
         return self(node.first) * self(node.second)
+
+    def visit_div(self, node):
+        if not type(node) is Div:
+            raise TypeError
+        return self(node.first) / self(node.second)
 
     def visit_eq(self, node):
         if not type(node) is Eq:
