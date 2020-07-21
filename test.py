@@ -7,12 +7,13 @@ print("**********")
 src = """count := 0;
 y := 1;
 while(count < 10 || 1 > 2):
-count := count + 1;
-if(2 < count && count < 7):
-    y := y + 0
-else:
-    y := y + 1
-;
+    count := count + 1;
+    if(2 < count && count < 7):
+        y := y + 0
+    else:
+        y := y + 1
+    end
+end;
 y"""
 tokenizer = Tokenizer(src)
 tokens = tokenizer.tokenize()

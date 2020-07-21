@@ -6,8 +6,8 @@
 # | T
 # | (E)
 # | UOP E
-# | while(E): E
-# | if(E): E else: E
+# | while(E): E end
+# | if(E): E else: E end
 # | E BOP T
 #
 # T ->
@@ -115,6 +115,7 @@ class Interpreter(object):
 @enum.unique
 class TokenType(enum.Enum):
     WHILE = "while"
+    END = "end"
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
     COLON = ":"
@@ -155,12 +156,11 @@ class Token(object):
 
 KEYWORDS = [
     TokenType.WHILE.value,
+    TokenType.END.value,
     TokenType.IF.value,
     TokenType.ELSE.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value
-
-
 ]
 
 
@@ -360,6 +360,7 @@ class Parser(object):
             self.match(TokenType.RIGHT_PAREN)
             self.match(TokenType.COLON)
             e2 = self.E()
+            self.match(TokenType.END)
             return While(e, e2)
         elif l == TokenType.IF:
             self.match(TokenType.IF)
@@ -371,6 +372,7 @@ class Parser(object):
             self.match(TokenType.ELSE)
             self.match(TokenType.COLON)
             e3 = self.E()
+            self.match(TokenType.END)
             return If(e, e2, e3)
         else:
             print(l)
@@ -889,7 +891,11 @@ class Printer(Visitor):
         self.indent = indent + "  "
         fbranch = self(node.second)
         self.indent = indent
-        return 'if(' + cond + '):\n' + indent + '  ' + tbranch + '\n' + indent + 'else:\n' + indent + '  ' + fbranch
+        return (TokenType.IF.value + '(' + cond + ')' + TokenType.COLON.value +
+                '\n' + indent + '  ' + tbranch + '\n' + indent +
+                TokenType.ELSE.value + TokenType.COLON.value +
+                '\n' + indent + '  ' + fbranch +
+                '\n' + indent + TokenType.END.value)
 
     def visit_not(self, node):
         if not type(node) is Not:
@@ -904,7 +910,9 @@ class Printer(Visitor):
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return 'while(' + cond + '):\n' + indent + '  ' + body
+        return (TokenType.WHILE.value + '(' + cond + ')' + TokenType.COLON.value +
+                '\n' + indent + '  ' + body +
+                '\n' + indent + TokenType.END.value)
 
     def visit_assign(self, node):
         if not type(node) is Assign:
