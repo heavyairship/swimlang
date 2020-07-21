@@ -2,6 +2,8 @@
 #
 # Grammar:
 #
+# FixMe: allow extra ;
+#
 # E ->
 # | T
 # | (E)
