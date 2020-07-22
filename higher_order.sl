@@ -1,15 +1,14 @@
-func outer(a):
+func sumfactory():
 
-    func inner(x):
-        2 + x
+    func sum(a, b):
+        a + b
     end;
-    
-    inner
+
+    sum
 end;
 
-func apply(f, x):
-    call f(x)
+func apply(f, x, y):
+    call f(x, y)
 end;
 
-a := call outer(1);
-call apply(a, 2)
+call apply(call sumfactory(), 1, 2)
