@@ -68,7 +68,7 @@
 # n -> (integer atom)
 # | [0-9]+
 #
-# v -> (variable atom)
+# v -> (variable atom) # FixMe: should probably distinguish b/w var/id
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
@@ -429,7 +429,7 @@ class Parser(object):
             self.match(TokenType.LEFT_PAREN)
             a = self.A()
             self.match(TokenType.RIGHT_PAREN)
-            return Call(v, a)
+            return Call(v.val, a)
         else:
             raise ValueError
 
@@ -1058,7 +1058,7 @@ class Printer(Visitor):
         self.indent = indent + "  "
         fbranch = self(node.second)
         self.indent = indent
-        return (TokenType.IF.value + '(' + cond + ')' + TokenType.COLON.value +
+        return (TokenType.IF.value + TokenType.LEFT_PAREN.value + cond + TokenType.RIGHT_PAREN.value + TokenType.COLON.value +
                 '\n' + indent + '  ' + tbranch + '\n' + indent +
                 TokenType.ELSE.value + TokenType.COLON.value +
                 '\n' + indent + '  ' + fbranch +
@@ -1077,7 +1077,7 @@ class Printer(Visitor):
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.WHILE.value + '(' + cond + ')' + TokenType.COLON.value +
+        return (TokenType.WHILE.value + TokenType.LEFT_PAREN.value + cond + TokenType.RIGHT_PAREN.value + TokenType.COLON.value +
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.END.value)
 
@@ -1096,13 +1096,53 @@ class Printer(Visitor):
             raise TypeError
         return "%s%s\n%s%s" % (self(node.first), TokenType.SEQ.value, self.indent, self(node.second))
 
+    def visit_func(self, node):
+        if not type(node) is Func:
+            raise TypeError
+        params = TokenType.LEFT_PAREN.value + \
+            ",".join(node.params) + TokenType.RIGHT_PAREN.value
+        indent = self.indent
+        self.indent = indent + "  "
+        body = self(node.body)
+        self.indent = indent
+        return (TokenType.FUNC.value + ' ' + node.name + params + TokenType.COLON.value +
+                '\n' + indent + '  ' + body +
+                '\n' + indent + TokenType.END.value)
+
+    def visit_call(self, node):
+        if not type(node) is Call:
+            raise TypeError
+        args = TokenType.LEFT_PAREN.value + \
+            ",".join([self(a) for a in node.args]) + \
+            TokenType.RIGHT_PAREN.value
+        return TokenType.CALL.value + ' ' + node.name + args
+
 ##################################################################################
 # AST evaluator
 ##################################################################################
 
 
 class Evaluator(Visitor):
-    state = {}
+    def __init__(self):
+        self.stack = [{}]
+
+    def state(self):
+        return self.stack[-1]
+
+    def global_state(self):
+        return self.stack[0]
+
+    def read(self, k):
+        if type(k) is not str:
+            raise TypeError
+        if k in self.state():
+            return self.state()[k]
+        return self.global_state()[k]
+
+    def write(self, k, v):
+        if type(k) is not str:
+            raise TypeError
+        self.state()[k] = v
 
     def visit_int(self, node):
         if not type(node) is Int:
@@ -1195,19 +1235,42 @@ class Evaluator(Visitor):
     def visit_assign(self, node):
         if not type(node) is Assign:
             raise TypeError
-        Evaluator.state[node.var.val] = self(node.expr)
-        return Evaluator.state[node.var.val]
+        self.write(node.var.val, self(node.expr))
+        return self.read(node.var.val)
 
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
-        return Evaluator.state[node.val]
+        return self.read(node.val)
 
     def visit_seq(self, node):
         if not type(node) is Seq:
             raise TypeError
         self(node.first)
         return self(node.second)
+
+    def visit_func(self, node):
+        if not type(node) is Func:
+            raise TypeError
+        self.write(node.name, node)
+        return False
+
+    def visit_call(self, node):
+        if not type(node) is Call:
+            raise TypeError
+        func = self.read(node.name)
+        if not type(func) is Func:
+            raise TypeError
+        if len(func.params) != len(node.args):
+            raise ValueError
+        frame = {}
+        for i, a in enumerate(node.args):
+            p = func.params[i]
+            frame[p] = self(a)
+        self.stack.append(frame)
+        out = self(func.body)
+        self.stack.pop()
+        return out
 
 ##################################################################################
 # AST type checker
