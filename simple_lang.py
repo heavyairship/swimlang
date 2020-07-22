@@ -1088,8 +1088,8 @@ class TypeChecker(Visitor):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", dest="filename",
-                        help="path to SimpleLang file", type=str, required=True)
+    parser.add_argument(
+        dest="filename", help="path to SimpleLang file", type=str)
     parser.add_argument("-v", "--verbose", dest="verbose",
                         help="run in verbose mode", action='store_true')
     args = parser.parse_args()
