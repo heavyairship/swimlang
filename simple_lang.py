@@ -333,12 +333,6 @@ class Parser(object):
 
     first_T = frozenset([TokenType.INT, TokenType.VAR]).union(first_b)
 
-    first_P2 = frozenset([TokenType.VAR])
-
-    first_P3 = frozenset([TokenType.COMMA])
-
-    first_P = frozenset([]).union(first_P2)
-
     first_UOP = frozenset([TokenType.NOT])
 
     first_BOP = frozenset([
@@ -480,11 +474,11 @@ class Parser(object):
 
     def P(self):
         l = self.lookahead()
-        if l in Parser.first_P2:
+        if l == TokenType.RIGHT_PAREN:  # FixMe: this is a hack?
+            return []
+        else:
             p = self.P2()
             return p
-        else:
-            return []
 
     def P2(self):
         l = self.lookahead()
@@ -505,10 +499,12 @@ class Parser(object):
             return []
 
     def A(self):
-        if self.lookahead() == TokenType.RIGHT_PAREN:  # FixMe: this is a hack
+        l = self.lookahead()
+        if l == TokenType.RIGHT_PAREN:  # FixMe: this is a hack?
             return []
         else:
-            return self.A2()
+            a = self.A2()
+            return a
 
     def A2(self):
         e = self.E()
