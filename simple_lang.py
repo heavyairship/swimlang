@@ -4,24 +4,48 @@
 #
 # FixMe: allow extra ;
 #
-# E ->
+# E -> (expression)
 # | T
 # | (E)
 # | UOP E
 # | while(E): E end
 # | if(E): E else: E end
 # | E BOP T
+# | func v(P): E end # FixMe: does it make sense for this to be an expression?
+# | call v(A)
 #
-# T ->
+# T -> (term)
 # | n
 # | b
 # | v
 #
-# UOP ->
+# P -> (param list)
+# | ε
+# | P2
+#
+# P2 -> (param list helper)
+# | v P3
+#
+# P3 -> (param list helper)
+# | ε
+# | , P2
+#
+# A -> (arg list)
+# | ε
+# | A2
+#
+# A2 -> (arg list helper)
+# | E A3
+#
+# A3 -> (arg list helper)
+# | ε
+# | , A2
+#
+# UOP -> (unary operation)
 # | !
 # FixMe: add ++ and --
 #
-# BOP ->
+# BOP -> (binary operation)
 # | &&
 # | ||
 # | ==
@@ -37,14 +61,14 @@
 # | ;
 # | :=
 #
-# b ->
+# b -> (boolean atom)
 # | True
 # | False
 #
-# n ->
+# n -> (integer atom)
 # | [0-9]+
 #
-# v -> (variable term)
+# v -> (variable atom)
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
@@ -124,6 +148,8 @@ class TokenType(enum.Enum):
     COLON = ":"
     IF = "if"
     ELSE = "else"
+    FUNC = "func"
+    CALL = "call"
     NOT = "!"
     AND = "&&"
     OR = "||"
@@ -138,6 +164,7 @@ class TokenType(enum.Enum):
     MUL = "*"
     DIV = "/"
     SEQ = ";"
+    COMMA = ","
     ASSIGN = ":="
     TRUE = "True"
     FALSE = "False"
@@ -163,6 +190,8 @@ KEYWORDS = [
     TokenType.END.value,
     TokenType.IF.value,
     TokenType.ELSE.value,
+    TokenType.FUNC.value,
+    TokenType.CALL.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value
 ]
@@ -280,6 +309,8 @@ class Tokenizer(object):
                 self.emit(TokenType.DIV)
             elif self.match(TokenType.SEQ.value):
                 self.emit(TokenType.SEQ)
+            elif self.match(TokenType.COMMA.value):
+                self.emit(TokenType.COMMA)
             elif self.match_keyword():
                 pass
             elif self.match_var():
@@ -298,14 +329,15 @@ class Tokenizer(object):
 
 
 class Parser(object):
-    first_b = frozenset([
-        TokenType.TRUE,
-        TokenType.FALSE
-    ])
+    first_b = frozenset([TokenType.TRUE, TokenType.FALSE])
 
-    first_T = frozenset([
-        TokenType.INT,
-        TokenType.VAR]).union(first_b)
+    first_T = frozenset([TokenType.INT, TokenType.VAR]).union(first_b)
+
+    first_P2 = frozenset([TokenType.VAR])
+
+    first_P3 = frozenset([TokenType.COMMA])
+
+    first_P = frozenset([]).union(first_P2)
 
     first_UOP = frozenset([TokenType.NOT])
 
@@ -381,6 +413,23 @@ class Parser(object):
             e3 = self.E()
             self.match(TokenType.END)
             return If(e, e2, e3)
+        elif l == TokenType.FUNC:
+            self.match(TokenType.FUNC)
+            v = self.match(TokenType.VAR)
+            self.match(TokenType.LEFT_PAREN)
+            p = self.P()
+            self.match(TokenType.RIGHT_PAREN)
+            self.match(TokenType.COLON)
+            e = self.E()
+            self.match(TokenType.END)
+            return Func(v.val, p, e)
+        elif l == TokenType.CALL:
+            self.match(TokenType.CALL)
+            v = self.match(TokenType.VAR)
+            self.match(TokenType.LEFT_PAREN)
+            a = self.A()
+            self.match(TokenType.RIGHT_PAREN)
+            return Call(v, a)
         else:
             raise ValueError
 
@@ -428,6 +477,52 @@ class Parser(object):
             return Var(v.val)
         else:
             raise ValueError
+
+    def P(self):
+        l = self.lookahead()
+        if l in Parser.first_P2:
+            p = self.P2()
+            return p
+        else:
+            return []
+
+    def P2(self):
+        l = self.lookahead()
+        if l == TokenType.VAR:
+            v = self.match(TokenType.VAR)
+            p3 = self.P3()
+            p3.insert(0, v.val)
+            return p3
+        else:
+            raise ValueError
+
+    def P3(self):
+        l = self.lookahead()
+        if l == TokenType.COMMA:
+            self.match(TokenType.COMMA)
+            return self.P2()
+        else:
+            return []
+
+    def A(self):
+        if self.lookahead() == TokenType.RIGHT_PAREN:  # FixMe: this is a hack
+            return []
+        else:
+            return self.A2()
+
+    def A2(self):
+        e = self.E()
+        a3 = self.A3()
+        a3.insert(0, e)
+        return a3
+
+    def A3(self):
+        l = self.lookahead()
+        if l == TokenType.COMMA:
+            self.match(TokenType.COMMA)
+            return self.A2()
+        else:
+            return []
 
     def UOP(self):
         l = self.lookahead()
@@ -766,6 +861,42 @@ class Seq(BinOp):
     def accept(self, visitor):
         return visitor.visit_seq(self)
 
+
+class Func(Node):
+    def __init__(self, name, params, body):
+        if not type(name) is str:
+            raise TypeError
+        if not type(params) is list:
+            raise TypeError
+        for p in params:
+            if not type(p) is str:
+                raise TypeError
+        if not issubclass(type(body), Node):
+            raise TypeError
+        self.name = name
+        self.params = params
+        self.body = body
+
+    def accept(self, visitor):
+        return visitor.visit_func(self)
+
+
+class Call(Node):
+    def __init__(self, name, args):
+        if not type(name) is str:
+            raise TypeError
+        if not type(args) is list:
+            raise TypeError
+        for a in args:
+            if not issubclass(type(a), Node):
+                raise TypeError
+        self.name = name
+        self.args = args
+
+    def accept(self, visitor):
+        return visitor.visit_call(self)
+
+
 ##################################################################################
 # Visitor base class
 ##################################################################################
@@ -830,6 +961,12 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_seq(self, node):
+        raise NotImplementedError
+
+    def visit_func(self, node):
+        raise NotImplementedError
+
+    def visit_call(self, node):
         raise NotImplementedError
 
 ##################################################################################
