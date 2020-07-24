@@ -2,17 +2,19 @@
 #
 # Grammar:
 #
-# FixMe: allow extra ;
-#
 # E -> (expression)
 # | T
-# | (E)
-# | UOP E
-# | while(E): E end
-# | if(E): E else: E end
-# | E BOP T
-# | func v(P): E end # FixMe: does it make sense for this to be an expression?
-# | call v(A)
+# | ( E1
+# | E; E
+#
+# E1 -> (expression helper)
+# | func v P: E)
+# | call v L)
+# | let v E)
+# | UOP E)
+# | BOP E E)
+# | TOP E E E)
+# | E )
 #
 # T -> (term)
 # | n
@@ -24,28 +26,19 @@
 # | P2
 #
 # P2 -> (param list helper)
-# | v P3
+# | v P
 #
-# P3 -> (param list helper)
+# L -> (expression list)
 # | ε
-# | , P2
+# | L2
 #
-# A -> (arg list)
-# | ε
-# | A2
+# L2 -> (expression list helper)
+# | E L
 #
-# A2 -> (arg list helper)
-# | E A3
-#
-# A3 -> (arg list helper)
-# | ε
-# | , A2
-#
-# UOP -> (unary operation)
+# UOP -> (unary operator)
 # | !
-# FixMe: add ++ and --
 #
-# BOP -> (binary operation)
+# BOP -> (binary operator)
 # | &&
 # | ||
 # | ==
@@ -58,8 +51,10 @@
 # | -
 # | *
 # | /
-# | ;
-# | :=
+# | while
+#
+# TOP -> (ternary operator)
+# | if
 #
 # b -> (boolean atom)
 # | True
@@ -68,7 +63,7 @@
 # n -> (integer atom)
 # | [0-9]+
 #
-# v -> (variable atom) # FixMe: should probably distinguish b/w var/id
+# v -> (variable atom) # FixMe: var/id should be different
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
@@ -142,14 +137,13 @@ class Interpreter(object):
 @enum.unique
 class TokenType(enum.Enum):
     WHILE = "while"
-    END = "end"
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
     COLON = ":"
     IF = "if"
-    ELSE = "else"
     FUNC = "func"
     CALL = "call"
+    LET = "let"
     NOT = "!"
     AND = "&&"
     OR = "||"
@@ -164,8 +158,6 @@ class TokenType(enum.Enum):
     MUL = "*"
     DIV = "/"
     SEQ = ";"
-    COMMA = ","
-    ASSIGN = ":="
     TRUE = "True"
     FALSE = "False"
     INT = enum.auto()
@@ -187,11 +179,10 @@ class Token(object):
 
 KEYWORDS = [
     TokenType.WHILE.value,
-    TokenType.END.value,
     TokenType.IF.value,
-    TokenType.ELSE.value,
     TokenType.FUNC.value,
     TokenType.CALL.value,
+    TokenType.LET.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value
 ]
@@ -279,8 +270,6 @@ class Tokenizer(object):
                 self.emit(TokenType.LTE)
             elif self.match(TokenType.GTE.value):
                 self.emit(TokenType.GTE)
-            elif self.match(TokenType.ASSIGN.value):
-                self.emit(TokenType.ASSIGN)
             elif self.match(TokenType.LEFT_PAREN.value):
                 self.emit(TokenType.LEFT_PAREN)
             elif self.match(TokenType.RIGHT_PAREN.value):
@@ -309,8 +298,6 @@ class Tokenizer(object):
                 self.emit(TokenType.DIV)
             elif self.match(TokenType.SEQ.value):
                 self.emit(TokenType.SEQ)
-            elif self.match(TokenType.COMMA.value):
-                self.emit(TokenType.COMMA)
             elif self.match_keyword():
                 pass
             elif self.match_var():
@@ -349,7 +336,15 @@ class Parser(object):
         TokenType.MUL,
         TokenType.DIV,
         TokenType.SEQ,
-        TokenType.ASSIGN])
+        TokenType.WHILE])
+
+    first_TOP = frozenset([TokenType.IF])
+
+    first_P2 = frozenset([TokenType.VAR])
+
+    first_E = frozenset([TokenType.LEFT_PAREN]).union(first_T)
+
+    first_L2 = frozenset([]).union(first_E)
 
     def __init__(self, tokens):
         self.tokens = tokens
@@ -372,91 +367,68 @@ class Parser(object):
             return None
         return self.tokens[self.idx].typ
 
-    def E_helper(self):
+    def E(self):
         l = self.lookahead()
-        if l in Parser.first_T:
-            t = self.T()
-            return t
+        if l in self.first_T:
+            e = self.T()
         elif l == TokenType.LEFT_PAREN:
             self.match(TokenType.LEFT_PAREN)
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return e
-        elif l in Parser.first_UOP:
-            uop = self.UOP()
-            e = self.E()
-            return uop(t)
-        elif l == TokenType.WHILE:
-            self.match(TokenType.WHILE)
-            self.match(TokenType.LEFT_PAREN)
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            self.match(TokenType.COLON)
+            e = self.E1()
+        else:
+            raise ValueError
+        l2 = self.lookahead()
+        if l2 == TokenType.SEQ:
+            self.match(TokenType.SEQ)
             e2 = self.E()
-            self.match(TokenType.END)
-            return While(e, e2)
-        elif l == TokenType.IF:
-            self.match(TokenType.IF)
-            self.match(TokenType.LEFT_PAREN)
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            self.match(TokenType.COLON)
-            e2 = self.E()
-            self.match(TokenType.ELSE)
-            self.match(TokenType.COLON)
-            e3 = self.E()
-            self.match(TokenType.END)
-            return If(e, e2, e3)
-        elif l == TokenType.FUNC:
+            return Seq(e, e2)
+        return e
+
+    def E1(self):
+        l = self.lookahead()
+        if l == TokenType.FUNC:
             self.match(TokenType.FUNC)
-            v = self.match(TokenType.VAR)
-            self.match(TokenType.LEFT_PAREN)
+            v = self.v()
             p = self.P()
-            self.match(TokenType.RIGHT_PAREN)
             self.match(TokenType.COLON)
             e = self.E()
-            self.match(TokenType.END)
+            self.match(TokenType.RIGHT_PAREN)
             return Func(v.val, p, e)
         elif l == TokenType.CALL:
             self.match(TokenType.CALL)
-            v = self.match(TokenType.VAR)
-            self.match(TokenType.LEFT_PAREN)
-            a = self.A()
+            v = self.v()
+            l = self.L()
             self.match(TokenType.RIGHT_PAREN)
-            return Call(v.val, a)
+            return Call(v.val, l)
+        elif l == TokenType.LET:
+            self.match(TokenType.LET)
+            v = self.v()
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return Assign(v, e)
+        elif l in self.first_UOP:
+            uop = self.UOP()
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return uop(e)
+        elif l in self.first_BOP:
+            bop = self.BOP()
+            e = self.E()
+            e2 = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return bop(e, e2)
+        elif l in self.first_TOP:
+            top = self.TOP()
+            e = self.E()
+            e2 = self.E()
+            e3 = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return top(e, e2, e3)
+        elif l in self.first_E:
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return e
         else:
             raise ValueError
-
-    def E(self):
-        # FixMe: cleanup
-        stack = []
-        stack.append(self.E_helper())
-        while self.lookahead() in Parser.first_BOP:
-            stack.append(self.BOP())
-            stack.append(self.E_helper())
-        end = False
-        while not end:
-            prec = None
-            end = True
-            for i in range(len(stack)):
-                s = stack[i]
-                if type(s) == type and issubclass(s, BinOp):
-                    if prec is not None and s.precedence <= prec:
-                        e1 = stack[i-3]
-                        bop = stack[i-2]
-                        e2 = stack[i-1]
-                        del stack[i-3: i]
-                        stack.insert(i-3, bop(e1, e2))
-                        end = False
-                        break
-                    else:
-                        prec = s.precedence
-        while len(stack) >= 3:
-            e2 = stack.pop()
-            bop = stack.pop()
-            e = stack.pop()
-            stack.append(bop(e, e2))
-        return stack.pop()
 
     def T(self):
         l = self.lookahead()
@@ -474,51 +446,35 @@ class Parser(object):
 
     def P(self):
         l = self.lookahead()
-        if l == TokenType.RIGHT_PAREN:  # FixMe: this is a hack?
-            return []
+        if l in self.first_P2:
+            p2 = self.P2()
+            return p2
         else:
-            p = self.P2()
-            return p
+            return []
 
     def P2(self):
         l = self.lookahead()
         if l == TokenType.VAR:
-            v = self.match(TokenType.VAR)
-            p3 = self.P3()
-            p3.insert(0, v.val)
-            return p3
+            v = self.v().val
+            p = self.P()
+            p.insert(0, v)
+            return p
         else:
             raise ValueError
 
-    def P3(self):
+    def L(self):
         l = self.lookahead()
-        if l == TokenType.COMMA:
-            self.match(TokenType.COMMA)
-            return self.P2()
+        if l in self.first_L2:
+            l2 = self.L2()
+            return l2
         else:
             return []
 
-    def A(self):
-        l = self.lookahead()
-        if l == TokenType.RIGHT_PAREN:  # FixMe: this is a hack?
-            return []
-        else:
-            a = self.A2()
-            return a
-
-    def A2(self):
+    def L2(self):
         e = self.E()
-        a3 = self.A3()
-        a3.insert(0, e)
-        return a3
-
-    def A3(self):
-        l = self.lookahead()
-        if l == TokenType.COMMA:
-            self.match(TokenType.COMMA)
-            return self.A2()
-        else:
-            return []
+        l = self.L()
+        l.insert(0, e)
+        return l
 
     def UOP(self):
         l = self.lookahead()
@@ -566,12 +522,25 @@ class Parser(object):
         elif l == TokenType.DIV:
             self.match(TokenType.DIV)
             return Div
-        elif l == TokenType.SEQ:
-            self.match(TokenType.SEQ)
-            return Seq
-        elif l == TokenType.ASSIGN:
-            self.match(TokenType.ASSIGN)
-            return Assign
+        elif l == TokenType.WHILE:
+            self.match(TokenType.WHILE)
+            return While
+        else:
+            raise ValueError
+
+    def TOP(self):
+        l = self.lookahead()
+        if l == TokenType.IF:
+            self.match(TokenType.IF)
+            return If
+        else:
+            raise ValueError
+
+    def v(self):
+        l = self.lookahead()
+        if l == TokenType.VAR:
+            v = self.match(TokenType.VAR)
+            return Var(v.val)
         else:
             raise ValueError
 
@@ -807,7 +776,7 @@ class If(Node):
         return visitor.visit_if(self)
 
 
-class While(Node):
+class While(BinOp):
     def __init__(self, cond, body):
         if not (issubclass(type(cond), Node) and issubclass(type(body), Node)):
             raise TypeError
@@ -819,6 +788,8 @@ class While(Node):
 
 
 class Assign(BinOp):
+    # FixMe: rename to Let
+    # FixMe: take in a string, not a Var
     precedence = 1
 
     def __init__(self, var, expr):
@@ -982,52 +953,52 @@ class Printer(Visitor):
     def visit_add(self, node):
         if not type(node) is Add:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.ADD.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.ADD.value, self(node.first), self(node.second))
 
     def visit_sub(self, node):
         if not type(node) is Sub:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.SUB.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.SUB.value, self(node.first), self(node.second))
 
     def visit_mul(self, node):
         if not type(node) is Mul:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.MUL.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.MUL.value, self(node.first), self(node.second))
 
     def visit_div(self, node):
         if not type(node) is Div:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.DIV.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.DIV.value, self(node.first), self(node.second))
 
     def visit_eq(self, node):
         if not type(node) is Eq:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.EQ.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.EQ.value, self(node.first), self(node.second))
 
     def visit_not_eq(self, node):
         if not type(node) is NotEq:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.NOT_EQ.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.NOT_EQ.value, self(node.first), self(node.second))
 
     def visit_lt(self, node):
         if not type(node) is Lt:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.LT.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.LT.value, self(node.first), self(node.second))
 
     def visit_lte(self, node):
         if not type(node) is Lte:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.LTE.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.LTE.value, self(node.first), self(node.second))
 
     def visit_gt(self, node):
         if not type(node) is Gt:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.GT.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.GT.value, self(node.first), self(node.second))
 
     def visit_gte(self, node):
         if not type(node) is Gte:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.GTE.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.GTE.value, self(node.first), self(node.second))
 
     def visit_bool(self, node):
         if not type(node) is Bool:
@@ -1037,12 +1008,12 @@ class Printer(Visitor):
     def visit_and(self, node):
         if not type(node) is And:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.AND.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.AND.value, self(node.first), self(node.second))
 
     def visit_or(self, node):
         if not type(node) is Or:
             raise TypeError
-        return "(%s %s %s)" % (self(node.first), TokenType.OR.value, self(node.second))
+        return "(%s %s %s)" % (TokenType.OR.value, self(node.first), self(node.second))
 
     def visit_if(self, node):
         if not type(node) is If:
@@ -1054,11 +1025,10 @@ class Printer(Visitor):
         self.indent = indent + "  "
         fbranch = self(node.second)
         self.indent = indent
-        return (TokenType.IF.value + TokenType.LEFT_PAREN.value + cond + TokenType.RIGHT_PAREN.value + TokenType.COLON.value +
-                '\n' + indent + '  ' + tbranch + '\n' + indent +
-                TokenType.ELSE.value + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.IF.value + ' ' + cond +
+                '\n' + indent + '  ' + tbranch +
                 '\n' + indent + '  ' + fbranch +
-                '\n' + indent + TokenType.END.value)
+                '\n' + indent + TokenType.RIGHT_PAREN.value)
 
     def visit_not(self, node):
         if not type(node) is Not:
@@ -1073,14 +1043,14 @@ class Printer(Visitor):
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.WHILE.value + TokenType.LEFT_PAREN.value + cond + TokenType.RIGHT_PAREN.value + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.WHILE.value + cond +
                 '\n' + indent + '  ' + body +
-                '\n' + indent + TokenType.END.value)
+                '\n' + indent + TokenType.RIGHT_PAREN.value)
 
     def visit_assign(self, node):
         if not type(node) is Assign:
             raise TypeError
-        return "%s %s %s" % (self(node.var), TokenType.ASSIGN.value, self(node.expr))
+        return "(%s %s %s)" % (TokenType.LET.value, self(node.var), self(node.expr))
 
     def visit_var(self, node):
         if not type(node) is Var:
@@ -1095,23 +1065,21 @@ class Printer(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        params = TokenType.LEFT_PAREN.value + \
-            ",".join(node.params) + TokenType.RIGHT_PAREN.value
+        params = " ".join(node.params)
         indent = self.indent
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.FUNC.value + ' ' + node.name + params + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + node.name + ' ' + params + TokenType.COLON.value +
                 '\n' + indent + '  ' + body +
-                '\n' + indent + TokenType.END.value)
+                '\n' + indent + TokenType.RIGHT_PAREN.value)
 
     def visit_call(self, node):
         if not type(node) is Call:
             raise TypeError
-        args = TokenType.LEFT_PAREN.value + \
-            ",".join([self(a) for a in node.args]) + \
-            TokenType.RIGHT_PAREN.value
-        return TokenType.CALL.value + ' ' + node.name + args
+        args = " ".join([self(a) for a in node.args])
+        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + node.name + ' ' + args +
+                TokenType.RIGHT_PAREN.value)
 
 ##################################################################################
 # AST evaluator
@@ -1249,7 +1217,7 @@ class Evaluator(Visitor):
         if not type(node) is Func:
             raise TypeError
         self.write(node.name, node)
-        return False
+        return node
 
     def visit_call(self, node):
         if not type(node) is Call:
