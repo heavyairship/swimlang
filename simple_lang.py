@@ -11,6 +11,9 @@
 # | func v P: E)
 # | call v L)
 # | let v E)
+# | const v E) # FixMe: implement this
+#              # FixMe: maybe just have one thing called "bind"?
+# | set v E)
 # | UOP E)
 # | BOP E E)
 # | TOP E E E)
@@ -148,6 +151,7 @@ class TokenType(enum.Enum):
     FUNC = "func"
     CALL = "call"
     LET = "let"
+    SET = "set"
     NOT = "!"
     AND = "&&"
     OR = "||"
@@ -187,6 +191,7 @@ KEYWORDS = [
     TokenType.FUNC.value,
     TokenType.CALL.value,
     TokenType.LET.value,
+    TokenType.SET.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value
 ]
@@ -408,6 +413,12 @@ class Parser(object):
             e = self.E()
             self.match(TokenType.RIGHT_PAREN)
             return Let(v, e)
+        elif l == TokenType.SET:
+            self.match(TokenType.SET)
+            v = self.v()
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return Set(v, e)
         elif l in self.first_UOP:
             uop = self.UOP()
             e = self.E()
@@ -798,8 +809,10 @@ class While(BinOp):
         return visitor.visit_while(self)
 
 
-class Let(BinOp):
+class Let(Node):
     # FixMe: take in a string, not a Var
+    # FixMe: should maybe allow re-letting inside
+    # a new scope (i.e. support shadowing)
     precedence = 1
 
     def __init__(self, var, expr):
@@ -812,6 +825,22 @@ class Let(BinOp):
 
     def accept(self, visitor):
         return visitor.visit_let(self)
+
+
+class Set(Node):
+    # FixMe: take in a string, not a Var
+    precedence = 1
+
+    def __init__(self, var, expr):
+        if not type(var) is Var:
+            raise TypeError
+        if not issubclass(type(expr), Node):
+            raise TypeError
+        self.var = var
+        self.expr = expr
+
+    def accept(self, visitor):
+        return visitor.visit_set(self)
 
 
 class Var(Node):
@@ -1063,6 +1092,11 @@ class Printer(Visitor):
             raise TypeError
         return "(%s %s %s)" % (TokenType.LET.value, self(node.var), self(node.expr))
 
+    def visit_set(self, node):
+        if not type(node) is Set:
+            raise TypeError
+        return "(%s %s %s)" % (TokenType.SET.value, self(node.var), self(node.expr))
+
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
@@ -1111,8 +1145,8 @@ class Evaluator(Visitor):
         if type(k) is not str:
             raise TypeError
         if k in self.state():
-            return self.state()[k]
-        return self.global_state()[k]
+            return self.state().get(k, None)
+        return self.global_state().get(k, None)
 
     def write(self, k, v):
         if type(k) is not str:
@@ -1210,6 +1244,16 @@ class Evaluator(Visitor):
     def visit_let(self, node):
         if not type(node) is Let:
             raise TypeError
+        if self.read(node.var.val) is not None:
+            raise ValueError
+        self.write(node.var.val, self(node.expr))
+        return self.read(node.var.val)
+
+    def visit_set(self, node):
+        if not type(node) is Set:
+            raise TypeError
+        if self.read(node.var.val) is None:
+            raise ValueError
         self.write(node.var.val, self(node.expr))
         return self.read(node.var.val)
 

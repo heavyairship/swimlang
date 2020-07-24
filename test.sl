@@ -1,7 +1,6 @@
-(let x 0);
-(let y 1);
-(while (< x 10) (
-    (let y (* y 2));
-    (let x (+ x 1))
+(let x 20);
+(func foo y: (
+    (set x 2);
+    (+ y x)
 ));
-y;;
+(call foo x)
