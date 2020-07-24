@@ -5,7 +5,7 @@
 # E -> (expression)
 # | T
 # | ( E1
-# | E; E
+# | E; E2
 #
 # E1 -> (expression helper)
 # | func v P: E)
@@ -15,6 +15,10 @@
 # | BOP E E)
 # | TOP E E E)
 # | E )
+#
+# E2 ->
+# | E
+# | ε
 #
 # T -> (term)
 # | n
@@ -376,12 +380,11 @@ class Parser(object):
             e = self.E1()
         else:
             raise ValueError
-        l2 = self.lookahead()
-        if l2 == TokenType.SEQ:
+        matched_seq = (self.lookahead() == TokenType.SEQ)
+        while self.lookahead() == TokenType.SEQ:
             self.match(TokenType.SEQ)
-            e2 = self.E()
-            return Seq(e, e2)
-        return e
+        e2 = self.E2() if matched_seq else None
+        return e if e2 is None else Seq(e, e2)
 
     def E1(self):
         l = self.lookahead()
@@ -429,6 +432,14 @@ class Parser(object):
             return e
         else:
             raise ValueError
+
+    def E2(self):
+        l = self.lookahead()
+        if l in self.first_E:
+            e = self.E()
+            return e
+        else:
+            return None
 
     def T(self):
         l = self.lookahead()
