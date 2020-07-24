@@ -1,14 +1,10 @@
-func sumfactory():
-
-    func sum(a, b):
-        a + b
-    end;
-
+(func sumfactory: 
+    (func sum a b: 
+        (+ a b)
+    );
     sum
-end;
-
-func apply(f, x, y):
-    call f(x, y)
-end;
-
-call apply(call sumfactory(), 1, 2)
+);
+(func apply f x y:
+    (call f x y)
+);
+(call apply (call sumfactory) 1 2)

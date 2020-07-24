@@ -830,6 +830,7 @@ class Seq(BinOp):
 
 
 class Func(Node):
+    # FixMe: implement closures/Currying
     def __init__(self, name, params, body):
         if not type(name) is str:
             raise TypeError

@@ -4,17 +4,14 @@ visitors = [Printer(), Evaluator()]
 
 # Test tokenizer/parser
 print("**********")
-src = """count := 0;
-y := 1;
-while(count < 10 || 1 > 2):
-    count := count + 1;
-    if(2 < count && count < 7):
-        y := y + 0
-    else:
-        y := y + 1
-    end
-end;
-y"""
+src = """(let count 0);
+(let y 1);
+(while (|| (< count 10) (> 1 2)) (
+    (let count (+ count 1));
+    (let y (if (&& (< 2 count) (< count 7)) (+ y 0) (+ y 1)))
+));
+y
+"""
 tokenizer = Tokenizer(src)
 tokens = tokenizer.tokenize()
 parser = Parser(tokens)

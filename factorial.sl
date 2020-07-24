@@ -1,7 +1,7 @@
-n := 5;
-fact := 1;
-while(n > 1):
-    fact := fact * n;
-    n := n - 1
-end;
+(let n  5);
+(let fact 1);
+(while (> n 1) (
+    (let fact (* fact n));
+    (let n (- n 1))
+));
 fact
