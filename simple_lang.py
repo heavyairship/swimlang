@@ -407,7 +407,7 @@ class Parser(object):
             v = self.v()
             e = self.E()
             self.match(TokenType.RIGHT_PAREN)
-            return Assign(v, e)
+            return Let(v, e)
         elif l in self.first_UOP:
             uop = self.UOP()
             e = self.E()
@@ -798,8 +798,7 @@ class While(BinOp):
         return visitor.visit_while(self)
 
 
-class Assign(BinOp):
-    # FixMe: rename to Let
+class Let(BinOp):
     # FixMe: take in a string, not a Var
     precedence = 1
 
@@ -812,7 +811,7 @@ class Assign(BinOp):
         self.expr = expr
 
     def accept(self, visitor):
-        return visitor.visit_assign(self)
+        return visitor.visit_let(self)
 
 
 class Var(Node):
@@ -933,7 +932,7 @@ class Visitor(object):
     def visit_while(self, node):
         raise NotImplementedError
 
-    def visit_assign(self, node):
+    def visit_let(self, node):
         raise NotImplementedError
 
     def visit_var(self, node):
@@ -1059,8 +1058,8 @@ class Printer(Visitor):
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
-    def visit_assign(self, node):
-        if not type(node) is Assign:
+    def visit_let(self, node):
+        if not type(node) is Let:
             raise TypeError
         return "(%s %s %s)" % (TokenType.LET.value, self(node.var), self(node.expr))
 
@@ -1208,8 +1207,8 @@ class Evaluator(Visitor):
             out = self(node.body)
         return out
 
-    def visit_assign(self, node):
-        if not type(node) is Assign:
+    def visit_let(self, node):
+        if not type(node) is Let:
             raise TypeError
         self.write(node.var.val, self(node.expr))
         return self.read(node.var.val)

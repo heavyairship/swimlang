@@ -40,16 +40,16 @@ for v in visitors:
 
 # Test assign
 print("**********")
-node1 = Assign(Var("x"), Add(Int(1), Int(1)))
+node1 = Let(Var("x"), Add(Int(1), Int(1)))
 for v in visitors:
     print(v(node1))
 
 # Test seq
 print("**********")
-node1 = Assign(Var("x"), Add(Int(1), Int(1)))
-node2 = Assign(Var("b"), Bool(True))
-node3 = Assign(Var("y"), Add(Var("x"), Int(10)))
-node4 = Assign(Var("y"), Add(Var("x"), Int(20)))
+node1 = Let(Var("x"), Add(Int(1), Int(1)))
+node2 = Let(Var("b"), Bool(True))
+node3 = Let(Var("y"), Add(Var("x"), Int(10)))
+node4 = Let(Var("y"), Add(Var("x"), Int(20)))
 node5 = If(Var("b"), node3, node4)
 node6 = Seq(node1, node2)
 node7 = Seq(node5, Var("y"))
@@ -59,8 +59,8 @@ for v in visitors:
 
 # Test while statements
 print("**********")
-node1 = Assign(Var("x"), Int(0))
-node2 = Assign(Var("x"), Add(Var("x"), Int(1)))
+node1 = Let(Var("x"), Int(0))
+node2 = Let(Var("x"), Add(Var("x"), Int(1)))
 node3 = While(NotEq(Var("x"), Int(10)), node2)
 node4 = Seq(node1, node3)
 for v in visitors:
