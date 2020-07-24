@@ -12,8 +12,7 @@
 # | if(E): E else: E end
 # | E BOP T
 # | func v(P): E end # FixMe: does it make sense for this to be an expression?
-# | call v(L)
-# | [L]
+# | call v(A)
 #
 # T -> (term)
 # | n
@@ -31,24 +30,20 @@
 # | ε
 # | , P2
 #
-# L -> (expression list)
+# A -> (arg list)
 # | ε
-# | L2
+# | A2
 #
-# L2 -> (arg list helper)
-# | E L3
+# A2 -> (arg list helper)
+# | E A3
 #
-# L3 -> (arg list helper)
+# A3 -> (arg list helper)
 # | ε
-# | , L2
+# | , A2
 #
 # UOP -> (unary operation)
 # | !
-# | head
-# | tail
 # FixMe: add ++ and --
-# FixMe: unary operators have lower precedence than all binary operators,
-# which is backwards.
 #
 # BOP -> (binary operation)
 # | &&
@@ -65,7 +60,6 @@
 # | /
 # | ;
 # | :=
-# | ::
 #
 # b -> (boolean atom)
 # | True
@@ -151,16 +145,12 @@ class TokenType(enum.Enum):
     END = "end"
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
-    LEFT_BRACKET = "["
-    RIGHT_BRACKET = "]"
     COLON = ":"
     IF = "if"
     ELSE = "else"
     FUNC = "func"
     CALL = "call"
     NOT = "!"
-    HEAD = "head"
-    TAIL = "tail"
     AND = "&&"
     OR = "||"
     EQ = "=="
@@ -176,7 +166,6 @@ class TokenType(enum.Enum):
     SEQ = ";"
     COMMA = ","
     ASSIGN = ":="
-    SCOPE = "::"
     TRUE = "True"
     FALSE = "False"
     INT = enum.auto()
@@ -204,9 +193,7 @@ KEYWORDS = [
     TokenType.FUNC.value,
     TokenType.CALL.value,
     TokenType.TRUE.value,
-    TokenType.FALSE.value,
-    TokenType.HEAD.value,
-    TokenType.TAIL.value
+    TokenType.FALSE.value
 ]
 
 
@@ -294,16 +281,10 @@ class Tokenizer(object):
                 self.emit(TokenType.GTE)
             elif self.match(TokenType.ASSIGN.value):
                 self.emit(TokenType.ASSIGN)
-            elif self.match(TokenType.SCOPE.value):
-                self.emit(TokenType.SCOPE)
             elif self.match(TokenType.LEFT_PAREN.value):
                 self.emit(TokenType.LEFT_PAREN)
             elif self.match(TokenType.RIGHT_PAREN.value):
                 self.emit(TokenType.RIGHT_PAREN)
-            elif self.match(TokenType.LEFT_BRACKET.value):
-                self.emit(TokenType.LEFT_BRACKET)
-            elif self.match(TokenType.RIGHT_BRACKET.value):
-                self.emit(TokenType.RIGHT_BRACKET)
             elif self.match(TokenType.COLON.value):
                 self.emit(TokenType.COLON)
             elif self.match(TokenType.NOT.value):
@@ -352,7 +333,7 @@ class Parser(object):
 
     first_T = frozenset([TokenType.INT, TokenType.VAR]).union(first_b)
 
-    first_UOP = frozenset([TokenType.NOT, TokenType.HEAD, TokenType.TAIL])
+    first_UOP = frozenset([TokenType.NOT])
 
     first_BOP = frozenset([
         TokenType.AND,
@@ -368,8 +349,7 @@ class Parser(object):
         TokenType.MUL,
         TokenType.DIV,
         TokenType.SEQ,
-        TokenType.ASSIGN,
-        TokenType.SCOPE])
+        TokenType.ASSIGN])
 
     def __init__(self, tokens):
         self.tokens = tokens
@@ -405,7 +385,7 @@ class Parser(object):
         elif l in Parser.first_UOP:
             uop = self.UOP()
             e = self.E()
-            return uop(e)
+            return uop(t)
         elif l == TokenType.WHILE:
             self.match(TokenType.WHILE)
             self.match(TokenType.LEFT_PAREN)
@@ -441,14 +421,9 @@ class Parser(object):
             self.match(TokenType.CALL)
             v = self.match(TokenType.VAR)
             self.match(TokenType.LEFT_PAREN)
-            exprL = self.L()
+            a = self.A()
             self.match(TokenType.RIGHT_PAREN)
-            return Call(v.val, exprL)
-        elif l == TokenType.LEFT_BRACKET:
-            self.match(TokenType.LEFT_BRACKET)
-            exprL = self.L()
-            self.match(TokenType.RIGHT_BRACKET)
-            return List(exprL)
+            return Call(v.val, a)
         else:
             raise ValueError
 
@@ -523,25 +498,25 @@ class Parser(object):
         else:
             return []
 
-    def L(self):
+    def A(self):
         l = self.lookahead()
-        if l in [TokenType.RIGHT_PAREN, TokenType.RIGHT_BRACKET]:  # FixMe: this is a hack?
+        if l == TokenType.RIGHT_PAREN:  # FixMe: this is a hack?
             return []
         else:
-            l2 = self.L2()
-            return l2
+            a = self.A2()
+            return a
 
-    def L2(self):
+    def A2(self):
         e = self.E()
-        l3 = self.L3()
-        l3.insert(0, e)
-        return l3
+        a3 = self.A3()
+        a3.insert(0, e)
+        return a3
 
-    def L3(self):
+    def A3(self):
         l = self.lookahead()
         if l == TokenType.COMMA:
             self.match(TokenType.COMMA)
-            return self.L2()
+            return self.A2()
         else:
             return []
 
@@ -550,12 +525,6 @@ class Parser(object):
         if l == TokenType.NOT:
             self.match(TokenType.NOT)
             return Not
-        elif l == TokenType.HEAD:
-            self.match(TokenType.HEAD)
-            return Head
-        elif l == TokenType.TAIL:
-            self.match(TokenType.TAIL)
-            return Tail
         else:
             raise ValueError
 
@@ -603,9 +572,6 @@ class Parser(object):
         elif l == TokenType.ASSIGN:
             self.match(TokenType.ASSIGN)
             return Assign
-        elif l == TokenType.SCOPE:
-            self.match(TokenType.SCOPE)
-            return Scope
         else:
             raise ValueError
 
@@ -892,19 +858,6 @@ class Seq(BinOp):
         return visitor.visit_seq(self)
 
 
-class Scope(BinOp):
-    precedence = 7
-
-    def __init__(self, first, second):
-        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
-            raise TypeError
-        self.first = first
-        self.second = second
-
-    def accept(self, visitor):
-        return visitor.visit_scope(self)
-
-
 class Func(Node):
     def __init__(self, name, params, body):
         if not type(name) is str:
@@ -938,39 +891,6 @@ class Call(Node):
 
     def accept(self, visitor):
         return visitor.visit_call(self)
-
-
-class List(Node):
-    def __init__(self, elements):
-        if not type(elements) is list:
-            raise TypeError
-        for e in elements:
-            if not issubclass(type(e), Node):
-                raise TypeError
-        self.elements = elements
-
-    def accept(self, visitor):
-        return visitor.visit_list(self)
-
-
-class Head(Node):
-    def __init__(self, arg):
-        if not issubclass(type(arg), Node):
-            raise TypeError
-        self.arg = arg
-
-    def accept(self, visitor):
-        return visitor.visit_head(self)
-
-
-class Tail(Node):
-    def __init__(self, arg):
-        if not issubclass(type(arg), Node):
-            raise TypeError
-        self.arg = arg
-
-    def accept(self, visitor):
-        return visitor.visit_tail(self)
 
 
 ##################################################################################
@@ -1039,22 +959,10 @@ class Visitor(object):
     def visit_seq(self, node):
         raise NotImplementedError
 
-    def visit_scope(self, node):
-        raise NotImplementedError
-
     def visit_func(self, node):
         raise NotImplementedError
 
     def visit_call(self, node):
-        raise NotImplementedError
-
-    def visit_list(self, node):
-        raise NotImplementedError
-
-    def visit_head(self, node):
-        raise NotImplementedError
-
-    def visit_tail(self, node):
         raise NotImplementedError
 
 ##################################################################################
@@ -1184,11 +1092,6 @@ class Printer(Visitor):
             raise TypeError
         return "%s%s\n%s%s" % (self(node.first), TokenType.SEQ.value, self.indent, self(node.second))
 
-    def visit_scope(self, node):
-        if not type(node) is Scope:
-            raise TypeError
-        return "%s%s%s%s" % (self(node.first), TokenType.SCOPE.value, self.indent, self(node.second))
-
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
@@ -1209,24 +1112,6 @@ class Printer(Visitor):
             ",".join([self(a) for a in node.args]) + \
             TokenType.RIGHT_PAREN.value
         return TokenType.CALL.value + ' ' + node.name + args
-
-    def visit_list(self, node):
-        if not type(node) is List:
-            raise TypeError
-        elements = TokenType.LEFT_BRACKET.value + \
-            ",".join([self(e) for e in node.elements]) + \
-            TokenType.RIGHT_BRACKET.value
-        return elements
-
-    def visit_head(self, node):
-        if not type(node) is Head:
-            raise TypeError
-        return TokenType.HEAD.value + " " + self(node.arg)
-
-    def visit_tail(self, node):
-        if not type(node) is Tail:
-            raise TypeError
-        return TokenType.TAIL.value + " " + self(node.arg)
 
 ##################################################################################
 # AST evaluator
@@ -1360,19 +1245,11 @@ class Evaluator(Visitor):
         self(node.first)
         return self(node.second)
 
-    def visit_scope(self, node):
-        if not type(node) is Scope:
-            raise TypeError
-        l = self(node.first)
-        i = self(node.second)
-        e = l.elements[i]
-        return self(e)
-
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
         self.write(node.name, node)
-        return node
+        return False
 
     def visit_call(self, node):
         if not type(node) is Call:
@@ -1390,27 +1267,6 @@ class Evaluator(Visitor):
         out = self(func.body)
         self.stack.pop()
         return out
-
-    def visit_list(self, node):
-        if not type(node) is List:
-            raise TypeError
-        return node
-
-    def visit_head(self, node):
-        if not type(node) is Head:
-            raise TypeError
-        l = self(node.arg)
-        h = l.elements[0]
-        return self(h)
-
-    def visit_tail(self, node):
-        if not type(node) is Tail:
-            raise TypeError
-        l = self(node.arg)
-        t = l.elements[1:]
-        print(t)
-        print(List(t))
-        return List(t)
 
 ##################################################################################
 # AST type checker
