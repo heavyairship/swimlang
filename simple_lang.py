@@ -27,6 +27,7 @@
 # | n
 # | b
 # | v
+# | [L]
 #
 # P -> (param list)
 # | ε
@@ -44,6 +45,9 @@
 #
 # UOP -> (unary operator)
 # | !
+# | head
+# | tail
+# | print
 #
 # BOP -> (binary operator)
 # | &&
@@ -59,6 +63,7 @@
 # | *
 # | /
 # | while
+# | push
 #
 # TOP -> (ternary operator)
 # | if
@@ -70,12 +75,13 @@
 # n -> (integer atom)
 # | [0-9]+
 #
-# v -> (variable atom) # FixMe: var/id should be different
+# v -> (variable) # FixMe: var/id should be different
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
 import argparse
 import copy
+import pdb
 
 ##################################################################################
 # Utility functions
@@ -147,6 +153,8 @@ class TokenType(enum.Enum):
     WHILE = "while"
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
+    LEFT_BRACKET = "["
+    RIGHT_BRACKET = "]"
     COLON = ":"
     IF = "if"
     FUNC = "func"
@@ -167,6 +175,10 @@ class TokenType(enum.Enum):
     MUL = "*"
     DIV = "/"
     SEQ = ";"
+    HEAD = "head"
+    TAIL = "tail"
+    PUSH = "push"
+    PRINT = "print"
     TRUE = "True"
     FALSE = "False"
     INT = enum.auto()
@@ -194,7 +206,11 @@ KEYWORDS = [
     TokenType.LET.value,
     TokenType.SET.value,
     TokenType.TRUE.value,
-    TokenType.FALSE.value
+    TokenType.FALSE.value,
+    TokenType.HEAD.value,
+    TokenType.TAIL.value,
+    TokenType.PUSH.value,
+    TokenType.PRINT.value
 ]
 
 
@@ -284,6 +300,10 @@ class Tokenizer(object):
                 self.emit(TokenType.LEFT_PAREN)
             elif self.match(TokenType.RIGHT_PAREN.value):
                 self.emit(TokenType.RIGHT_PAREN)
+            elif self.match(TokenType.LEFT_BRACKET.value):
+                self.emit(TokenType.LEFT_BRACKET)
+            elif self.match(TokenType.RIGHT_BRACKET.value):
+                self.emit(TokenType.RIGHT_BRACKET)
             elif self.match(TokenType.COLON.value):
                 self.emit(TokenType.COLON)
             elif self.match(TokenType.NOT.value):
@@ -328,9 +348,11 @@ class Tokenizer(object):
 class Parser(object):
     first_b = frozenset([TokenType.TRUE, TokenType.FALSE])
 
-    first_T = frozenset([TokenType.INT, TokenType.VAR]).union(first_b)
+    first_T = frozenset([TokenType.INT, TokenType.VAR,
+                         TokenType.LEFT_BRACKET]).union(first_b)
 
-    first_UOP = frozenset([TokenType.NOT])
+    first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
+                           TokenType.TAIL, TokenType.PRINT])
 
     first_BOP = frozenset([
         TokenType.AND,
@@ -346,7 +368,8 @@ class Parser(object):
         TokenType.MUL,
         TokenType.DIV,
         TokenType.SEQ,
-        TokenType.WHILE])
+        TokenType.WHILE,
+        TokenType.PUSH])
 
     first_TOP = frozenset([TokenType.IF])
 
@@ -464,6 +487,11 @@ class Parser(object):
         elif l == TokenType.VAR:
             v = self.match(TokenType.VAR)
             return Var(v.val)
+        elif l == TokenType.LEFT_BRACKET:
+            self.match(TokenType.LEFT_BRACKET)
+            l = self.L()
+            self.match(TokenType.RIGHT_BRACKET)
+            return List(l)
         else:
             raise ValueError
 
@@ -504,6 +532,15 @@ class Parser(object):
         if l == TokenType.NOT:
             self.match(TokenType.NOT)
             return Not
+        elif l == TokenType.HEAD:
+            self.match(TokenType.HEAD)
+            return Head
+        elif l == TokenType.TAIL:
+            self.match(TokenType.TAIL)
+            return Tail
+        elif l == TokenType.PRINT:
+            self.match(TokenType.PRINT)
+            return Print
         else:
             raise ValueError
 
@@ -548,6 +585,9 @@ class Parser(object):
         elif l == TokenType.WHILE:
             self.match(TokenType.WHILE)
             return While
+        elif l == TokenType.PUSH:
+            self.match(TokenType.PUSH)
+            return Push
         else:
             raise ValueError
 
@@ -592,6 +632,22 @@ class Parser(object):
 
 
 class Node(object):
+    @staticmethod
+    def wrap(e):
+        if type(e) is int:
+            return Int(e)
+        elif type(e) is bool:
+            return Bool(e)
+        else:
+            return e
+
+    @staticmethod
+    def unwrap(e):
+        if type(e) in [Int, Bool]:
+            return e.val
+        else:
+            return e
+
     def accept(self, visitor):
         pass
 
@@ -609,6 +665,9 @@ class Int(Node):
 
     def accept(self, visitor):
         return visitor.visit_int(self)
+
+    def __eval__(self):
+        return self.val
 
 
 class Add(BinOp):
@@ -906,6 +965,65 @@ class Call(Node):
         return visitor.visit_call(self)
 
 
+class List(Node):
+    def __init__(self, elements):
+        if not type(elements) is list:
+            raise TypeError
+        for e in elements:
+            if not issubclass(type(e), Node):
+                raise TypeError
+        self.elements = elements
+
+    def accept(self, visitor):
+        return visitor.visit_list(self)
+
+    def __str__(self):
+        return str([Node.unwrap(e) for e in self.elements])
+
+    def __bool__(self):
+        return len(self.elements) != 0
+
+
+class Head(Node):
+    def __init__(self, arg):
+        if not issubclass(type(arg), Node):
+            raise TypeError
+        self.arg = arg
+
+    def accept(self, visitor):
+        return visitor.visit_head(self)
+
+
+class Tail(Node):
+    def __init__(self, arg):
+        if not issubclass(type(arg), Node):
+            raise TypeError
+        self.arg = arg
+
+    def accept(self, visitor):
+        return visitor.visit_tail(self)
+
+
+class Push(BinOp):
+    def __init__(self, head, tail):
+        if not (issubclass(type(head), Node) and issubclass(type(tail), Node)):
+            raise TypeError
+        self.head = head
+        self.tail = tail
+
+    def accept(self, visitor):
+        return visitor.visit_push(self)
+
+
+class Print(Node):
+    def __init__(self, arg):
+        if not issubclass(type(arg), Node):
+            raise TypeError
+        self.arg = arg
+
+    def accept(self, visitor):
+        return visitor.visit_print(self)
+
 ##################################################################################
 # Visitor base class
 ##################################################################################
@@ -976,6 +1094,21 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_call(self, node):
+        raise NotImplementedError
+
+    def visit_list(self, node):
+        raise NotImplementedError
+
+    def visit_head(self, node):
+        raise NotImplementedError
+
+    def vist_tail(self, node):
+        raise NotImplementedError
+
+    def visit_push(self, node):
+        raise NotImplementedError
+
+    def visit_print(self, node):
         raise NotImplementedError
 
 ##################################################################################
@@ -1129,6 +1262,37 @@ class Printer(Visitor):
         return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + node.name + args +
                 TokenType.RIGHT_PAREN.value)
 
+    def visit_list(self, node):
+        if not type(node) is List:
+            raise TypeError
+        elements = " ".join([self(e) for e in node.elements]) if len(
+            node.elements) > 0 else ""
+        return TokenType.LEFT_BRACKET.value + elements + TokenType.RIGHT_BRACKET.value
+
+    def visit_head(self, node):
+        if not type(node) is Head:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.HEAD.value + " " + self(node.arg) +
+                TokenType.RIGHT_PAREN.value)
+
+    def visit_tail(self, node):
+        if not type(node) is Tail:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.TAIL.value + " " + self(node.arg) +
+                TokenType.RIGHT_PAREN.value)
+
+    def visit_push(self, node):
+        if not type(node) is Push:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.PUSH.value + " " + self(node.head) + " " +
+                self(node.tail) + TokenType.RIGHT_PAREN.value)
+
+    def visit_print(self, node):
+        if not type(node) is Print:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.PRINT.value + " " + self(node.arg) +
+                TokenType.RIGHT_PAREN.value)
+
 ##################################################################################
 # AST evaluator
 ##################################################################################
@@ -1263,7 +1427,10 @@ class Evaluator(Visitor):
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
-        return self.read(node.val)
+        val = self.read(node.val)
+        if val is None:
+            raise ValueError
+        return val
 
     def visit_seq(self, node):
         if not type(node) is Seq:
@@ -1288,13 +1455,12 @@ class Evaluator(Visitor):
             raise ValueError
         if len(func.params) == len(node.args):
             # Order of precedence (lowest to highest):
-            # 1. call scope bindings
-            # 2. function env bindings
-            # 3. function parameter bindings
-            frame = copy.copy(self.state())  # 1.
-            for k, v in func.env.items():  # 2.
+            # 1. function env bindings
+            # 2. function parameter bindings
+            frame = {}
+            for k, v in func.env.items():  # 1.
                 frame[k] = v
-            for i, a in enumerate(node.args):  # 3.
+            for i, a in enumerate(node.args):  # 2.
                 p = func.params[i]
                 frame[p] = self(a)
             self.stack.append(frame)
@@ -1311,6 +1477,40 @@ class Evaluator(Visitor):
             out = Func(name, params, body)
             out.env = env
         return out
+
+    def visit_list(self, node):
+        if not type(node) is List:
+            raise TypeError
+        return node
+
+    def visit_head(self, node):
+        if not type(node) is Head:
+            raise TypeError
+        l = self(node.arg)
+        if len(l.elements) <= 0:
+            raise ValueError
+        h = l.elements[0]
+        return self(h)
+
+    def visit_tail(self, node):
+        if not type(node) is Tail:
+            raise TypeError
+        l = self(node.arg)
+        tail = l.elements[1:]
+        return List(tail)
+
+    def visit_push(self, node):
+        if not type(node) is Push:
+            raise TypeError
+        tail = self(node.tail).elements
+        head = Node.wrap(self(node.head))
+        return List([head] + tail)
+
+    def visit_print(self, node):
+        if not type(node) is Print:
+            raise TypeError
+        print(self(node.arg))
+        return None
 
 ##################################################################################
 # AST type checker
