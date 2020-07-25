@@ -1112,20 +1112,21 @@ class Printer(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        params = " ".join(node.params)
+        params = " " + " ".join(node.params) if len(node.params) > 0 else ""
         indent = self.indent
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + node.name + ' ' + params + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + node.name + params + TokenType.COLON.value +
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
     def visit_call(self, node):
         if not type(node) is Call:
             raise TypeError
-        args = " ".join([self(a) for a in node.args])
-        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + node.name + ' ' + args +
+        args = " " + " ".join([self(a) for a in node.args]
+                              ) if len(node.args) > 0 else ""
+        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + node.name + args +
                 TokenType.RIGHT_PAREN.value)
 
 ##################################################################################
@@ -1287,7 +1288,7 @@ class Evaluator(Visitor):
             raise ValueError
         if len(func.params) == len(node.args):
             # Order of precedence (lowest to highest):
-            # 1. function parent scope bindings
+            # 1. call scope bindings
             # 2. function env bindings
             # 3. function parameter bindings
             frame = copy.copy(self.state())  # 1.
