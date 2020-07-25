@@ -1,5 +1,8 @@
 # SimpleLang
 #
+# FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
+# FixMe: try to do faster copies/copy on write
+#
 # Grammar:
 #
 # E -> (expression)
