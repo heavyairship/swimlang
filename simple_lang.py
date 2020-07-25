@@ -1313,9 +1313,7 @@ class Evaluator(Visitor):
     def read(self, k):
         if type(k) is not str:
             raise TypeError
-        if k in self.state():
-            return self.state().get(k, None)
-        return self.global_state().get(k, None)
+        return self.state().get(k, None)
 
     def write(self, k, v):
         if type(k) is not str:
