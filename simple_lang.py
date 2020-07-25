@@ -75,6 +75,7 @@
 
 import enum
 import argparse
+import copy
 
 ##################################################################################
 # Utility functions
@@ -871,7 +872,7 @@ class Seq(BinOp):
 class Func(Node):
     # FixMe: implement closures/Currying
     def __init__(self, name, params, body):
-        if not type(name) is str:
+        if not (type(name) is str or name is None):
             raise TypeError
         if not type(params) is list:
             raise TypeError
@@ -883,6 +884,7 @@ class Func(Node):
         self.name = name
         self.params = params
         self.body = body
+        self.env = {}
 
     def accept(self, visitor):
         return visitor.visit_func(self)
@@ -1271,6 +1273,7 @@ class Evaluator(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
+        node.env = copy.copy(self.state())
         self.write(node.name, node)
         return node
 
@@ -1280,15 +1283,32 @@ class Evaluator(Visitor):
         func = self.read(node.name)
         if not type(func) is Func:
             raise TypeError
-        if len(func.params) != len(node.args):
+        if len(func.params) < len(node.args):
             raise ValueError
-        frame = {}
-        for i, a in enumerate(node.args):
-            p = func.params[i]
-            frame[p] = self(a)
-        self.stack.append(frame)
-        out = self(func.body)
-        self.stack.pop()
+        if len(func.params) == len(node.args):
+            # Order of precedence (lowest to highest):
+            # 1. function parent scope bindings
+            # 2. function env bindings
+            # 3. function parameter bindings
+            frame = copy.copy(self.state())  # 1.
+            for k, v in func.env.items():  # 2.
+                frame[k] = v
+            for i, a in enumerate(node.args):  # 3.
+                p = func.params[i]
+                frame[p] = self(a)
+            self.stack.append(frame)
+            out = self(func.body)
+            self.stack.pop()
+        else:
+            params = [p for p in func.params[len(node.args):]]
+            name = None
+            env = copy.copy(func.env)
+            body = func.body
+            for i, a in enumerate(node.args):
+                p = func.params[i]
+                env[p] = self(a)
+            out = Func(name, params, body)
+            out.env = env
         return out
 
 ##################################################################################
