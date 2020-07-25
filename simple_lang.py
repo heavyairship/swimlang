@@ -938,6 +938,8 @@ class Func(Node):
         for p in params:
             if not type(p) is str:
                 raise TypeError
+            if p == name:
+                raise ValueError
         if not issubclass(type(body), Node):
             raise TypeError
         self.name = name
@@ -1442,6 +1444,7 @@ class Evaluator(Visitor):
         if not type(node) is Func:
             raise TypeError
         node.env = copy.copy(self.state())
+        node.env[node.name] = node
         self.write(node.name, node)
         return node
 
