@@ -14,8 +14,7 @@
 # | func v P: E)
 # | call v L)
 # | let v E)
-# | const v E) # FixMe: implement this
-#              # FixMe: maybe just have one thing called "bind"?
+# | mut v E)
 # | set v E)
 # | UOP E)
 # | BOP E E)
@@ -163,6 +162,7 @@ class TokenType(enum.Enum):
     FUNC = "func"
     CALL = "call"
     LET = "let"
+    MUT = "mut"
     SET = "set"
     NOT = "!"
     AND = "&&"
@@ -207,6 +207,7 @@ KEYWORDS = [
     TokenType.FUNC.value,
     TokenType.CALL.value,
     TokenType.LET.value,
+    TokenType.MUT.value,
     TokenType.SET.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value,
@@ -440,6 +441,12 @@ class Parser(object):
             e = self.E()
             self.match(TokenType.RIGHT_PAREN)
             return Let(v, e)
+        elif l == TokenType.MUT:
+            self.match(TokenType.MUT)
+            v = self.v()
+            e = self.E()
+            self.match(TokenType.RIGHT_PAREN)
+            return Mut(v, e)
         elif l == TokenType.SET:
             self.match(TokenType.SET)
             v = self.v()
@@ -674,8 +681,6 @@ class Int(Node):
 
 
 class Add(BinOp):
-    precedence = 5
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -687,8 +692,6 @@ class Add(BinOp):
 
 
 class Sub(BinOp):
-    precedence = 5
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -700,8 +703,6 @@ class Sub(BinOp):
 
 
 class Mul(BinOp):
-    precedence = 6
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -713,8 +714,6 @@ class Mul(BinOp):
 
 
 class Div(BinOp):
-    precedence = 6
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -726,8 +725,6 @@ class Div(BinOp):
 
 
 class Eq(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -739,8 +736,6 @@ class Eq(BinOp):
 
 
 class NotEq(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -752,8 +747,6 @@ class NotEq(BinOp):
 
 
 class Lt(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -765,8 +758,6 @@ class Lt(BinOp):
 
 
 class Lte(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -778,8 +769,6 @@ class Lte(BinOp):
 
 
 class Gt(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -791,8 +780,6 @@ class Gt(BinOp):
 
 
 class Gte(BinOp):
-    precedence = 4
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -814,8 +801,6 @@ class Bool(Node):
 
 
 class And(BinOp):
-    precedence = 3
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -827,8 +812,6 @@ class And(BinOp):
 
 
 class Or(BinOp):
-    precedence = 2
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -874,10 +857,6 @@ class While(BinOp):
 
 class Let(Node):
     # FixMe: take in a string, not a Var
-    # FixMe: should maybe allow re-letting inside
-    # a new scope (i.e. support shadowing)
-    precedence = 1
-
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -890,10 +869,22 @@ class Let(Node):
         return visitor.visit_let(self)
 
 
+class Mut(Node):
+    # FixMe: take in a string, not a Var
+    def __init__(self, var, expr):
+        if not type(var) is Var:
+            raise TypeError
+        if not issubclass(type(expr), Node):
+            raise TypeError
+        self.var = var
+        self.expr = expr
+
+    def accept(self, visitor):
+        return visitor.visit_mut(self)
+
+
 class Set(Node):
     # FixMe: take in a string, not a Var
-    precedence = 1
-
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -919,8 +910,6 @@ class Var(Node):
 
 
 class Seq(BinOp):
-    precedence = 0
-
     def __init__(self, first, second):
         if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
             raise TypeError
@@ -932,7 +921,6 @@ class Seq(BinOp):
 
 
 class Func(Node):
-    # FixMe: implement closures/Currying
     def __init__(self, name, params, body):
         if not (type(name) is str or name is None):
             raise TypeError
@@ -1089,6 +1077,9 @@ class Visitor(object):
     def visit_let(self, node):
         raise NotImplementedError
 
+    def visit_mut(self, node):
+        raise NotImplementedError
+
     def visit_var(self, node):
         raise NotImplementedError
 
@@ -1232,6 +1223,11 @@ class Printer(Visitor):
             raise TypeError
         return "(%s %s %s)" % (TokenType.LET.value, self(node.var), self(node.expr))
 
+    def visit_mut(self, node):
+        if not type(node) is Mut:
+            raise TypeError
+        return "(%s %s %s)" % (TokenType.MUT.value, self(node.var), self(node.expr))
+
     def visit_set(self, node):
         if not type(node) is Set:
             raise TypeError
@@ -1301,6 +1297,15 @@ class Printer(Visitor):
 ##################################################################################
 # AST evaluator
 ##################################################################################
+
+
+class Binding(object):
+    def __init__(self, val, is_mut, from_env):
+        self.val = val
+        if not type(is_mut) is bool:
+            raise ValueError
+        if not type(from_env) is bool:
+            raise ValueError
 
 
 class Evaluator(Visitor):
@@ -1413,6 +1418,14 @@ class Evaluator(Visitor):
 
     def visit_let(self, node):
         if not type(node) is Let:
+            raise TypeError
+        if self.read(node.var.val) is not None:
+            raise ValueError
+        self.write(node.var.val, self(node.expr))
+        return self.read(node.var.val)
+
+    def visit_mut(self, node):
+        if not type(node) is Mut:
             raise TypeError
         if self.read(node.var.val) is not None:
             raise ValueError
