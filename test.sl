@@ -1,4 +1,4 @@
-(let x 20);
+(mut x 20);
 (func bar: 
     0
 );

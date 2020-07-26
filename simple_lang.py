@@ -1299,13 +1299,32 @@ class Printer(Visitor):
 ##################################################################################
 
 
+@enum.unique
+class Scope(enum.Enum):
+    PARAM = enum.auto()
+    LOCAL = enum.auto()
+    INHERITED = enum.auto()
+
+
+@enum.unique
+class Decl(enum.Enum):
+    LET = enum.auto()
+    MUT = enum.auto()
+    NONE = enum.auto()  # used for set <var> <val>
+
+
 class Binding(object):
-    def __init__(self, val, is_mut, from_env):
+    def __init__(self, scope, decl, is_current_func, val):
+        if type(scope) is not Scope:
+            raise TypeError
+        if type(decl) is not Decl:
+            raise TypeError
+        if type(is_current_func) is not bool:
+            raise TypeError
+        self.scope = scope
+        self.decl = decl
+        self.is_current_func = is_current_func
         self.val = val
-        if not type(is_mut) is bool:
-            raise ValueError
-        if not type(from_env) is bool:
-            raise ValueError
 
 
 class Evaluator(Visitor):
@@ -1318,15 +1337,46 @@ class Evaluator(Visitor):
     def global_state(self):
         return self.stack[0]
 
-    def read(self, k):
-        if type(k) is not str:
+    def read(self, name):
+        if type(name) is not str:
             raise TypeError
-        return self.state().get(k, None)
+        if name in self.state():
+            return self.state()[name].val
+        return None
 
-    def write(self, k, v):
-        if type(k) is not str:
+    def write(self, name, binding):
+        if type(name) is not str:
             raise TypeError
-        self.state()[k] = v
+        current_binding = self.state().get(name, None)
+        if current_binding is None:
+            self.state()[name] = binding
+        elif current_binding.scope == Scope.LOCAL:
+            if binding.decl in [Decl.LET, Decl.MUT]:
+                raise ValueError(
+                    "re-declaration of %s inside local scope" % name)
+            elif current_binding.decl == Decl.LET:
+                raise ValueError("cannot rebind non-mutable %s" % name)
+            else:
+                self.state()[name] = binding
+        elif current_binding.scope == Scope.INHERITED:
+            if current_binding.is_current_func:
+                raise ValueError("re-declaration current function %s" % name)
+            elif binding.decl in [Decl.LET, Decl.MUT]:
+                self.state()[name] = binding
+            elif current_binding.decl == Decl.LET:
+                raise ValueError("cannot rebind non-mutable %s" % name)
+            else:
+                self.state()[name] = binding
+        elif current_binding.scope == Scope.PARAM:
+            if binding.decl in [Decl.LET, Decl.MUT]:
+                raise ValueError("re-declaration of param %s" % name)
+            elif current_binding.decl == Decl.MUT:
+                raise ValueError("cannot rebind non-mutable %s" % name)
+            else:
+                raise AssertionError("found mutable param %s" % name)
+        else:
+            raise AssertionError("unknown scope type %s" %
+                                 str(current_binding.scope))
 
     def visit_int(self, node):
         if not type(node) is Int:
@@ -1419,26 +1469,28 @@ class Evaluator(Visitor):
     def visit_let(self, node):
         if not type(node) is Let:
             raise TypeError
-        if self.read(node.var.val) is not None:
-            raise ValueError
-        self.write(node.var.val, self(node.expr))
-        return self.read(node.var.val)
+        val = self(node.expr)
+        binding = Binding(Scope.LOCAL, Decl.LET, False, val)
+        self.write(node.var.val, binding)
+        return val
 
     def visit_mut(self, node):
         if not type(node) is Mut:
             raise TypeError
-        if self.read(node.var.val) is not None:
-            raise ValueError
-        self.write(node.var.val, self(node.expr))
-        return self.read(node.var.val)
+        val = self(node.expr)
+        binding = Binding(Scope.LOCAL, Decl.MUT, False, val)
+        self.write(node.var.val, binding)
+        return val
 
     def visit_set(self, node):
         if not type(node) is Set:
             raise TypeError
         if self.read(node.var.val) is None:
             raise ValueError
-        self.write(node.var.val, self(node.expr))
-        return self.read(node.var.val)
+        val = self(node.expr)
+        binding = Binding(Scope.LOCAL, Decl.NONE, False, val)
+        self.write(node.var.val, binding)
+        return val
 
     def visit_var(self, node):
         if not type(node) is Var:
@@ -1457,9 +1509,12 @@ class Evaluator(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        node.env = copy.copy(self.state())
-        node.env[node.name] = node
-        self.write(node.name, node)
+        node.env = {}
+        for name, binding in self.state().items():
+            node.env[name] = Binding(
+                Scope.INHERITED, binding.decl, False, binding.val)
+        node.env[node.name] = Binding(Scope.INHERITED, Decl.LET, False, node)
+        self.write(node.name, node.env[node.name])
         return node
 
     def visit_call(self, node):
@@ -1470,29 +1525,34 @@ class Evaluator(Visitor):
             raise TypeError
         if len(func.params) < len(node.args):
             raise ValueError
+
+        # Order of precedence (lowest to highest):
+        # 1. function env bindings
+        # 2. function parameter bindings
+
         if len(func.params) == len(node.args):
-            # Order of precedence (lowest to highest):
-            # 1. function env bindings
-            # 2. function parameter bindings
+            # All params available - evaluate the function
             frame = {}
-            for k, v in func.env.items():  # 1.
-                frame[k] = v
-            for i, a in enumerate(node.args):  # 2.
-                p = func.params[i]
-                frame[p] = self(a)
+            for name, binding in func.env.items():
+                frame[name] = Binding(
+                    binding.scope, binding.decl, False, binding.val)
+            for i, a in enumerate(node.args):
+                name = func.params[i]
+                frame[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
+            frame[func.name] = Binding(Scope.INHERITED, Decl.LET, True, func)
             self.stack.append(frame)
             out = self(func.body)
             self.stack.pop()
         else:
+            # Not all params available - return a closure
             params = [p for p in func.params[len(node.args):]]
-            name = None
-            env = copy.copy(func.env)
-            body = func.body
+            out = Func(func.name, params, func.body)
+            for name, binding in func.env.items():
+                out.env[name] = Binding(
+                    binding.scope, binding.decl, False, binding.val)
             for i, a in enumerate(node.args):
-                p = func.params[i]
-                env[p] = self(a)
-            out = Func(name, params, body)
-            out.env = env
+                name = func.params[i]
+                out.env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
         return out
 
     def visit_list(self, node):

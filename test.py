@@ -7,8 +7,8 @@ def visitors():
 
 # Test tokenizer/parser
 print("**********")
-src = """(let count 0);
-(let y 1);
+src = """(mut count 0);
+(mut y 1);
 (while (|| (< count 10) (> 1 2)) (
     (set count (+ count 1));
     (set y (if (&& (< 2 count) (< count 7)) (+ y 0) (+ y 1)))
@@ -49,7 +49,7 @@ for v in visitors():
 
 # Test seq
 print("**********")
-node1 = Let(Var("x"), Add(Int(1), Int(1)))
+node1 = Mut(Var("x"), Add(Int(1), Int(1)))
 node2 = Let(Var("b"), Bool(True))
 node3 = Set(Var("x"), Add(Var("x"), Int(10)))
 node4 = Set(Var("x"), Add(Var("x"), Int(20)))
@@ -62,7 +62,7 @@ for v in visitors():
 
 # Test while statements
 print("**********")
-node1 = Let(Var("x"), Int(0))
+node1 = Mut(Var("x"), Int(0))
 node2 = Set(Var("x"), Add(Var("x"), Int(1)))
 node3 = While(NotEq(Var("x"), Int(10)), node2)
 node4 = Seq(node1, node3)
