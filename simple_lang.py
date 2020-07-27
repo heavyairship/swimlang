@@ -1509,13 +1509,14 @@ class Evaluator(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        node.env = {}
+        out = Func(node.name, node.params, node.body)
+        out.env = {}
         for name, binding in self.state().items():
-            node.env[name] = Binding(
+            out.env[name] = Binding(
                 Scope.INHERITED, binding.decl, False, binding.val)
-        node.env[node.name] = Binding(Scope.INHERITED, Decl.LET, False, node)
-        self.write(node.name, node.env[node.name])
-        return node
+        out.env[out.name] = Binding(Scope.INHERITED, Decl.LET, False, out)
+        self.write(out.name, out.env[out.name])
+        return out
 
     def visit_call(self, node):
         if not type(node) is Call:
@@ -1525,11 +1526,6 @@ class Evaluator(Visitor):
             raise TypeError
         if len(func.params) < len(node.args):
             raise ValueError
-
-        # Order of precedence (lowest to highest):
-        # 1. function env bindings
-        # 2. function parameter bindings
-
         if len(func.params) == len(node.args):
             # All params available - evaluate the function
             frame = {}
