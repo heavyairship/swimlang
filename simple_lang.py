@@ -1347,11 +1347,12 @@ class Evaluator(Visitor):
     def current_frame(self):
         return self.stack[-1]
 
-    def read(self, name):
+    def read(self, name, frame=None):
         if type(name) is not str:
             raise TypeError
-        if name in self.current_frame().env:
-            return self.current_frame().env[name].val
+        frame = self.current_frame() if frame is None else frame
+        if name in frame.env:
+            return frame.env[name]
         return None
 
     def write(self, name, binding, frame=None):
@@ -1497,10 +1498,11 @@ class Evaluator(Visitor):
     def visit_set(self, node):
         if not type(node) is Set:
             raise TypeError
-        if self.read(node.var.val) is None:
+        binding = self.read(node.var.val)
+        if binding is None:
             raise ValueError
         val = self(node.expr)
-        binding = Binding(Scope.LOCAL, Decl.NONE, False, val)
+        binding = Binding(binding.scope, Decl.NONE, False, val)
         self.write(node.var.val, binding)
         # Propagate write up call stack as long as the calling context is the same as the lexical
         # scope, as is the case when nested functions are called within their enclosing lexical
@@ -1509,8 +1511,9 @@ class Evaluator(Visitor):
         # in this case, no propagation is necessary.
         func = self.current_frame().func
         idx = -2  # FixMe: clean up
-        while func and func.lexical_scope == self.stack[idx].func:
-            self.write(node.var.val, binding, self.stack[idx])
+        while binding.scope == Scope.INHERITED and func and func.lexical_scope == self.stack[idx].func:
+            binding = self.read(node.var.val, self.stack[idx])
+            binding.val = val
             func = func.lexical_scope
             idx -= 1
         return val
@@ -1518,7 +1521,7 @@ class Evaluator(Visitor):
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
-        val = self.read(node.val)
+        val = self.read(node.val).val
         if val is None:
             raise ValueError
         return val
@@ -1545,7 +1548,7 @@ class Evaluator(Visitor):
     def visit_call(self, node):
         if not type(node) is Call:
             raise TypeError
-        func = self.read(node.name)
+        func = self.read(node.name).val
         if not type(func) is Func:
             raise TypeError
         if len(func.params) < len(node.args):
