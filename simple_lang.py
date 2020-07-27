@@ -428,7 +428,7 @@ class Parser(object):
             self.match(TokenType.COLON)
             e = self.E()
             self.match(TokenType.RIGHT_PAREN)
-            return Func(v.val, p, e)
+            return Func(v.val, p, e, None)
         elif l == TokenType.CALL:
             self.match(TokenType.CALL)
             v = self.v()
@@ -921,7 +921,7 @@ class Seq(BinOp):
 
 
 class Func(Node):
-    def __init__(self, name, params, body):
+    def __init__(self, name, params, body, parent):
         if not (type(name) is str or name is None):
             raise TypeError
         if not type(params) is list:
@@ -933,10 +933,13 @@ class Func(Node):
                 raise ValueError
         if not issubclass(type(body), Node):
             raise TypeError
+        if not (type(parent) is Func or parent is None):
+            raise TypeError
         self.name = name
         self.params = params
         self.body = body
         self.env = {}
+        self.parent = parent
 
     def accept(self, visitor):
         return visitor.visit_func(self)
@@ -1327,29 +1330,37 @@ class Binding(object):
         self.val = val
 
 
+class Frame(object):
+    def __init__(self, func, env):
+        if not (type(func) is Func or func is None):
+            raise TypeError
+        if not type(env) is dict:
+            raise TypeError
+        self.func = func
+        self.env = env
+
+
 class Evaluator(Visitor):
     def __init__(self):
-        self.stack = [{}]
+        self.stack = [Frame(None, {})]
 
-    def state(self):
+    def current_frame(self):
         return self.stack[-1]
-
-    def global_state(self):
-        return self.stack[0]
 
     def read(self, name):
         if type(name) is not str:
             raise TypeError
-        if name in self.state():
-            return self.state()[name].val
+        if name in self.current_frame().env:
+            return self.current_frame().env[name].val
         return None
 
-    def write(self, name, binding):
+    def write(self, name, binding, frame=None):
         if type(name) is not str:
             raise TypeError
-        current_binding = self.state().get(name, None)
+        frame = self.current_frame() if frame is None else frame
+        current_binding = frame.env.get(name, None)
         if current_binding is None:
-            self.state()[name] = binding
+            frame.env[name] = binding
         elif current_binding.scope == Scope.LOCAL:
             if binding.decl in [Decl.LET, Decl.MUT]:
                 raise ValueError(
@@ -1357,16 +1368,17 @@ class Evaluator(Visitor):
             elif current_binding.decl == Decl.LET:
                 raise ValueError("cannot rebind non-mutable %s" % name)
             else:
-                self.state()[name] = binding
+                frame.env[name] = binding
         elif current_binding.scope == Scope.INHERITED:
             if current_binding.is_current_func:
-                raise ValueError("re-declaration current function %s" % name)
+                raise ValueError(
+                    "re-binding of current function %s" % name)
             elif binding.decl in [Decl.LET, Decl.MUT]:
-                self.state()[name] = binding
+                frame.env[name] = binding
             elif current_binding.decl == Decl.LET:
                 raise ValueError("cannot rebind non-mutable %s" % name)
             else:
-                self.state()[name] = binding
+                frame.env[name] = binding
         elif current_binding.scope == Scope.PARAM:
             if binding.decl in [Decl.LET, Decl.MUT]:
                 raise ValueError("re-declaration of param %s" % name)
@@ -1490,6 +1502,14 @@ class Evaluator(Visitor):
         val = self(node.expr)
         binding = Binding(Scope.LOCAL, Decl.NONE, False, val)
         self.write(node.var.val, binding)
+        # Propagate write up the stack if the lexical scope is also the call context.
+        # FixMe: cleanup
+        func = self.current_frame().func
+        idx = -2
+        while func and func.parent == self.stack[-2].func:
+            self.write(node.var.val, binding, self.stack[-2])
+            func = func.parent
+            idx -= 1
         return val
 
     def visit_var(self, node):
@@ -1509,9 +1529,10 @@ class Evaluator(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        out = Func(node.name, node.params, node.body)
+        out = Func(node.name, node.params, node.body,
+                   self.current_frame().func)
         out.env = {}
-        for name, binding in self.state().items():
+        for name, binding in self.current_frame().env.items():
             out.env[name] = Binding(
                 Scope.INHERITED, binding.decl, False, binding.val)
         out.env[out.name] = Binding(Scope.INHERITED, Decl.LET, False, out)
@@ -1528,21 +1549,21 @@ class Evaluator(Visitor):
             raise ValueError
         if len(func.params) == len(node.args):
             # All params available - evaluate the function
-            frame = {}
+            env = {}
             for name, binding in func.env.items():
-                frame[name] = Binding(
+                env[name] = Binding(
                     binding.scope, binding.decl, False, binding.val)
             for i, a in enumerate(node.args):
                 name = func.params[i]
-                frame[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
-            frame[func.name] = Binding(Scope.INHERITED, Decl.LET, True, func)
-            self.stack.append(frame)
+                env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
+            env[func.name] = Binding(Scope.INHERITED, Decl.LET, True, func)
+            self.stack.append(Frame(func, env))
             out = self(func.body)
             self.stack.pop()
         else:
             # Not all params available - return a closure
             params = [p for p in func.params[len(node.args):]]
-            out = Func(func.name, params, func.body)
+            out = Func(func.name, params, func.body, func.parent)
             for name, binding in func.env.items():
                 out.env[name] = Binding(
                     binding.scope, binding.decl, False, binding.val)
