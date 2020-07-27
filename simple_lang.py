@@ -1502,12 +1502,15 @@ class Evaluator(Visitor):
         val = self(node.expr)
         binding = Binding(Scope.LOCAL, Decl.NONE, False, val)
         self.write(node.var.val, binding)
-        # Propagate write up the stack if the lexical scope is also the call context.
-        # FixMe: cleanup
+        # Propagate write up call stack as long as the calling context is the same as the lexical
+        # scope, as is the case when nested functions are called within their enclosing lexical
+        # context. Note that the lexical scope can be different from the calling context, e.g.
+        # when a nested function is returned and subsequently called outside of its lexical scope;
+        # in this case, no propagation is necessary.
         func = self.current_frame().func
-        idx = -2
-        while func and func.parent == self.stack[-2].func:
-            self.write(node.var.val, binding, self.stack[-2])
+        idx = -2  # FixMe: clean up
+        while func and func.parent == self.stack[idx].func:
+            self.write(node.var.val, binding, self.stack[idx])
             func = func.parent
             idx -= 1
         return val
