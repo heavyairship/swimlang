@@ -1413,7 +1413,7 @@ class Evaluator(Visitor):
     def visit_div(self, node):
         if not type(node) is Div:
             raise TypeError
-        return self(node.first) / self(node.second)
+        return int(self(node.first) / self(node.second))
 
     def visit_eq(self, node):
         if not type(node) is Eq:
