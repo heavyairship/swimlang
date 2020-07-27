@@ -921,7 +921,7 @@ class Seq(BinOp):
 
 
 class Func(Node):
-    def __init__(self, name, params, body, parent):
+    def __init__(self, name, params, body, lexical_scope):
         if not (type(name) is str or name is None):
             raise TypeError
         if not type(params) is list:
@@ -933,13 +933,13 @@ class Func(Node):
                 raise ValueError
         if not issubclass(type(body), Node):
             raise TypeError
-        if not (type(parent) is Func or parent is None):
+        if not (type(lexical_scope) is Func or lexical_scope is None):
             raise TypeError
         self.name = name
         self.params = params
         self.body = body
         self.env = {}
-        self.parent = parent
+        self.lexical_scope = lexical_scope
 
     def accept(self, visitor):
         return visitor.visit_func(self)
@@ -1509,9 +1509,9 @@ class Evaluator(Visitor):
         # in this case, no propagation is necessary.
         func = self.current_frame().func
         idx = -2  # FixMe: clean up
-        while func and func.parent == self.stack[idx].func:
+        while func and func.lexical_scope == self.stack[idx].func:
             self.write(node.var.val, binding, self.stack[idx])
-            func = func.parent
+            func = func.lexical_scope
             idx -= 1
         return val
 
@@ -1566,7 +1566,7 @@ class Evaluator(Visitor):
         else:
             # Not all params available - return a closure
             params = [p for p in func.params[len(node.args):]]
-            out = Func(func.name, params, func.body, func.parent)
+            out = Func(func.name, params, func.body, func.lexical_scope)
             for name, binding in func.env.items():
                 out.env[name] = Binding(
                     binding.scope, binding.decl, False, binding.val)
