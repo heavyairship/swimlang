@@ -30,7 +30,7 @@ Simple functional programming language interpreter for fun! Supports (higher ord
 );
 
 (let l [1 2 3 4]);
-(let m (call reverse (call map timestwo l)))
+(call reverse (call map timestwo l))
 ```
 
 The above code evaluates to the list `[8 6 4 2]`.
