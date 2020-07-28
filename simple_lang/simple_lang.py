@@ -656,12 +656,6 @@ class Parser(object):
         else:
             raise ValueError
 
-    def s(self):
-        self.match(TokenType.QUOTE)
-        s = self.match(TokenType.STR)
-        self.match(TokenType.QUOTE)
-        return s.val
-
     def parse(self):
         if self.done():
             return None
@@ -1015,7 +1009,7 @@ class List(Node):
         return visitor.visit_list(self)
 
     def __str__(self):
-        return str([Node.unwrap(e) for e in self.elements])
+        return Printer()(self)
 
     def __bool__(self):
         return len(self.elements) != 0
