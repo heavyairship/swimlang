@@ -12,11 +12,11 @@ install:
 
 check: clean install
 	echo "\nrunning test.py" && $(PYTHON) tests/test.py && \
-	echo "\nrunning test.sl" && $(PYTHON) simple_lang.py examples/test.sl --verbose && \
-	echo "\nrunning factorial.sl" && $(PYTHON) simple_lang.py examples/factorial.sl --verbose && \
-	echo "\nrunning log_2.sl" && $(PYTHON) simple_lang.py examples/log_2.sl --verbose && \
-	echo "\nrunning higher_order.sl" && $(PYTHON) simple_lang.py examples/higher_order.sl --verbose && \
-	echo "\nrunning factorial_rec.sl" && $(PYTHON) simple_lang.py examples/factorial_rec.sl --verbose && \
-	echo "\nrunning call_test.sl" && $(PYTHON) simple_lang.py examples/call_test.sl --verbose && \
-	echo "\nrunning list_example.sl" && $(PYTHON) simple_lang.py examples/list_example.sl --verbose 
+	echo "\nrunning test.sl" && simple_lang.py examples/test.sl --verbose && \
+	echo "\nrunning factorial.sl" && simple_lang.py examples/factorial.sl --verbose && \
+	echo "\nrunning log_2.sl" && simple_lang.py examples/log_2.sl --verbose && \
+	echo "\nrunning higher_order.sl" && simple_lang.py examples/higher_order.sl --verbose && \
+	echo "\nrunning factorial_rec.sl" && simple_lang.py examples/factorial_rec.sl --verbose && \
+	echo "\nrunning call_test.sl" && simple_lang.py examples/call_test.sl --verbose && \
+	echo "\nrunning list_example.sl" && simple_lang.py examples/list_example.sl --verbose 
 
