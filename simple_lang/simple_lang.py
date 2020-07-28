@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+#
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors

@@ -2,3 +2,6 @@
 __pycache__
 *.pyc
 playground.sl
+build
+simple_lang.egg-info
+dist

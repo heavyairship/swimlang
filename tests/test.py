@@ -1,4 +1,4 @@
-from simple_lang import *
+from simple_lang.simple_lang import *
 
 
 def visitors():
