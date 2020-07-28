@@ -7,4 +7,7 @@
     (+ y x);
     (call bar)
 ));
-(call foo x)
+(call foo x);
+(let a "hi ");
+(let b "there!");
+(+ a b)

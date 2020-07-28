@@ -28,6 +28,7 @@
 # T -> (term)
 # | n
 # | b
+# | s
 # | v
 # | [L]
 #
@@ -77,13 +78,16 @@
 # n -> (integer atom)
 # | [0-9]+
 #
+# s -> (string atom) # double quotes surrounding any ascii character
+# | "[\x00-\x7F]+"
+#
 # v -> (variable) # FixMe: var/id should be different
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
 import argparse
-import copy
 import pdb
+import json
 
 ##################################################################################
 # Utility functions
@@ -150,6 +154,9 @@ class Interpreter(object):
 ##################################################################################
 
 
+QUOTE = '"'
+
+
 @enum.unique
 class TokenType(enum.Enum):
     WHILE = "while"
@@ -186,6 +193,7 @@ class TokenType(enum.Enum):
     FALSE = "False"
     INT = enum.auto()
     VAR = enum.auto()
+    STR = enum.auto()
 
 
 class Token(object):
@@ -274,6 +282,19 @@ class Tokenizer(object):
         self.emit(TokenType.INT, int(num))
         return True
 
+    def match_str(self):
+        if not self.match(QUOTE):
+            return False
+        val = ""
+        while self.peek().isascii():
+            if self.peek() == QUOTE and val[-1] is not '\\':
+                break
+            val += self.next()
+        if not self.match(QUOTE):
+            raise ValueError
+        self.emit(TokenType.STR, val)
+        return True
+
     def match_var(self):
         if not alpha(self.peek()):
             return False
@@ -338,6 +359,8 @@ class Tokenizer(object):
                 pass
             elif self.match_int():
                 pass
+            elif self.match_str():
+                pass
             elif self.match_space():
                 pass
             else:
@@ -352,7 +375,7 @@ class Tokenizer(object):
 class Parser(object):
     first_b = frozenset([TokenType.TRUE, TokenType.FALSE])
 
-    first_T = frozenset([TokenType.INT, TokenType.VAR,
+    first_T = frozenset([TokenType.INT, TokenType.VAR, TokenType.STR,
                          TokenType.LEFT_BRACKET]).union(first_b)
 
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
@@ -502,6 +525,9 @@ class Parser(object):
             l = self.L()
             self.match(TokenType.RIGHT_BRACKET)
             return List(l)
+        elif l == TokenType.STR:
+            s = self.match(TokenType.STR)
+            return Str(s.val)
         else:
             raise ValueError
 
@@ -627,6 +653,12 @@ class Parser(object):
             return False
         else:
             raise ValueError
+
+    def s(self):
+        self.match(TokenType.QUOTE)
+        s = self.match(TokenType.STR)
+        self.match(TokenType.QUOTE)
+        return s.val
 
     def parse(self):
         if self.done():
@@ -830,6 +862,16 @@ class Not(Node):
 
     def accept(self, visitor):
         return visitor.visit_not(self)
+
+
+class Str(Node):
+    def __init__(self, val):
+        if not type(val) is str:
+            raise TypeError
+        self.val = val
+
+    def accept(self, visitor):
+        return visitor.visit_str(self)
 
 
 class If(Node):
@@ -1074,6 +1116,9 @@ class Visitor(object):
     def visit_not(self, node):
         raise NotImplementedError
 
+    def visit_str(self, node):
+        raise NotImplementedError
+
     def visit_while(self, node):
         raise NotImplementedError
 
@@ -1208,6 +1253,11 @@ class Printer(Visitor):
         if not type(node) is Not:
             raise TypeError
         return '%s%s' % (TokenType.NOT.value, self(node.arg))
+
+    def visit_str(self, node):
+        if not type(node) is Str:
+            raise TypeError
+        return "%s%s%s" % (QUOTE, node.val, QUOTE)
 
     def visit_while(self, node):
         if not type(node) is While:
@@ -1465,6 +1515,11 @@ class Evaluator(Visitor):
         if not type(node) is Not:
             raise TypeError
         return not self(node.arg)
+
+    def visit_str(self, node):
+        if not type(node) is Str:
+            raise TypeError
+        return json.loads('%s%s%s' % (QUOTE, node.val, QUOTE))
 
     def visit_if(self, node):
         if not type(node) is If:
