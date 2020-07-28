@@ -12,7 +12,7 @@
 #
 # E1 -> (expression helper)
 # | func v P: E)
-# | call v L)
+# | call E L)
 # | let v E)
 # | mut v E)
 # | set v E)
@@ -454,10 +454,10 @@ class Parser(object):
             return Func(v.val, p, e, None)
         elif l == TokenType.CALL:
             self.match(TokenType.CALL)
-            v = self.v()
+            e = self.E()
             l = self.L()
             self.match(TokenType.RIGHT_PAREN)
-            return Call(v.val, l)
+            return Call(e, l)
         elif l == TokenType.LET:
             self.match(TokenType.LET)
             v = self.v()
@@ -685,7 +685,7 @@ class Node(object):
 
     @staticmethod
     def unwrap(e):
-        if type(e) in [Int, Bool]:
+        if type(e) in [Int, Bool, Str]:
             return e.val
         else:
             return e
@@ -707,9 +707,6 @@ class Int(Node):
 
     def accept(self, visitor):
         return visitor.visit_int(self)
-
-    def __eval__(self):
-        return self.val
 
 
 class Add(BinOp):
@@ -988,15 +985,15 @@ class Func(Node):
 
 
 class Call(Node):
-    def __init__(self, name, args):
-        if not type(name) is str:
+    def __init__(self, func, args):
+        if not issubclass(type(func), Node):
             raise TypeError
         if not type(args) is list:
             raise TypeError
         for a in args:
             if not issubclass(type(a), Node):
                 raise TypeError
-        self.name = name
+        self.func = func
         self.args = args
 
     def accept(self, visitor):
@@ -1313,7 +1310,7 @@ class Printer(Visitor):
             raise TypeError
         args = " " + " ".join([self(a) for a in node.args]
                               ) if len(node.args) > 0 else ""
-        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + node.name + args +
+        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + self(node.func) + args +
                 TokenType.RIGHT_PAREN.value)
 
     def visit_list(self, node):
@@ -1603,7 +1600,7 @@ class Evaluator(Visitor):
     def visit_call(self, node):
         if not type(node) is Call:
             raise TypeError
-        func = self.read(node.name).val
+        func = self(node.func)
         if not type(func) is Func:
             raise TypeError
         if len(func.params) < len(node.args):
