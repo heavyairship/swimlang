@@ -1554,7 +1554,7 @@ class Evaluator(Visitor):
         self.write(node.var.val, binding)
         # Propagate write up call stack as long as the calling context is the same as the lexical
         # scope, as is the case when nested functions are called within their enclosing lexical
-        # context. Note that the lexical scope can be different from the calling context, e.g.
+        # scope. Note that the lexical scope can be different from the calling context, e.g.
         # when a nested function is returned and subsequently called outside of its lexical scope;
         # in this case, no propagation is necessary.
         func = self.current_frame().func
