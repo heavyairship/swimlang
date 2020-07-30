@@ -4,6 +4,8 @@
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
 # FixMe: try to do faster copies/copy on write for lists, associations, etc.
+# FixMe: allow comments
+# FixMe: add messages for parse/eval errors
 #
 # Grammar:
 #
