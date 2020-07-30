@@ -3,7 +3,7 @@
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
-# FixMe: try to do faster copies/copy on write
+# FixMe: try to do faster copies/copy on write for lists, associations, etc.
 #
 # Grammar:
 #
@@ -101,6 +101,9 @@ import argparse
 import json
 import copy
 import pdb
+import sys
+sys.setrecursionlimit(10**6)  # FixMe: remove and evaluate iteratively
+
 
 ##################################################################################
 # Utility functions
@@ -140,27 +143,6 @@ def isspace(val):
     if val is None:
         return False
     return val.isspace()
-
-##################################################################################
-# Interpreter
-##################################################################################
-
-
-class Interpreter(object):
-    def __init__(self, src):
-        self.src = src
-
-    def interpret(self, verbose=False):
-        tokens = Tokenizer(self.src).tokenize()
-        ast = Parser(tokens).parse()
-        if verbose:
-            print("\n*********************")
-            print("Parsed the following:")
-            print("*********************")
-            print(Printer()(ast))
-            print("*********************\n")
-        res = Evaluator()(ast)
-        return res
 
 ##################################################################################
 # Tokenizer
@@ -1853,6 +1835,27 @@ class Evaluator(Visitor):
 class TypeChecker(Visitor):
     # FixMe: implement
     pass
+
+##################################################################################
+# Interpreter
+##################################################################################
+
+
+class Interpreter(object):
+    def __init__(self, src):
+        self.src = src
+
+    def interpret(self, verbose=False):
+        tokens = Tokenizer(self.src).tokenize()
+        ast = Parser(tokens).parse()
+        if verbose:
+            print("\n*********************")
+            print("Parsed the following:")
+            print("*********************")
+            print(Printer()(ast))
+            print("*********************\n")
+        res = Evaluator()(ast)
+        return res
 
 ##################################################################################
 # Main
