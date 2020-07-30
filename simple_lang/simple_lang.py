@@ -290,7 +290,7 @@ class Tokenizer(object):
             return False
         val = ""
         while self.peek().isascii():
-            if self.peek() == QUOTE and val[-1] is not '\\':
+            if self.peek() == QUOTE and (len(val) == 0 or val[-1] is not '\\'):
                 break
             val += self.next()
         if not self.match(QUOTE):
