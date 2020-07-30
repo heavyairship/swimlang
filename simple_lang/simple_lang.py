@@ -9,8 +9,8 @@
 #
 # E -> (expression)
 # | T
-# | ( E1
-# | E; E2
+# | (E1
+# | E;E2
 #
 # E1 -> (expression helper)
 # | func v P: E)
@@ -21,7 +21,7 @@
 # | UOP E)
 # | BOP E E)
 # | TOP E E E)
-# | E )
+# | E)
 #
 # E2 ->
 # | E
@@ -33,6 +33,14 @@
 # | s
 # | v
 # | [L]
+# | {A}
+#
+# A -> (association)
+# | ε
+# | A2
+#
+# A2 -> (association helper)
+# | E:E A
 #
 # P -> (param list)
 # | ε
@@ -69,9 +77,11 @@
 # | /
 # | while
 # | push
+# | get
 #
 # TOP -> (ternary operator)
 # | if
+# | put
 #
 # b -> (boolean atom)
 # | True
@@ -88,8 +98,9 @@
 
 import enum
 import argparse
-import pdb
 import json
+import copy
+import pdb
 
 ##################################################################################
 # Utility functions
@@ -166,6 +177,8 @@ class TokenType(enum.Enum):
     RIGHT_PAREN = ")"
     LEFT_BRACKET = "["
     RIGHT_BRACKET = "]"
+    LEFT_BRACE = "{"
+    RIGHT_BRACE = "}"
     COLON = ":"
     IF = "if"
     FUNC = "func"
@@ -190,6 +203,8 @@ class TokenType(enum.Enum):
     HEAD = "head"
     TAIL = "tail"
     PUSH = "push"
+    GET = "get"
+    PUT = "put"
     PRINT = "print"
     TRUE = "True"
     FALSE = "False"
@@ -224,6 +239,8 @@ KEYWORDS = [
     TokenType.HEAD.value,
     TokenType.TAIL.value,
     TokenType.PUSH.value,
+    TokenType.GET.value,
+    TokenType.PUT.value,
     TokenType.PRINT.value
 ]
 
@@ -331,6 +348,10 @@ class Tokenizer(object):
                 self.emit(TokenType.LEFT_BRACKET)
             elif self.match(TokenType.RIGHT_BRACKET.value):
                 self.emit(TokenType.RIGHT_BRACKET)
+            elif self.match(TokenType.LEFT_BRACE.value):
+                self.emit(TokenType.LEFT_BRACE)
+            elif self.match(TokenType.RIGHT_BRACE.value):
+                self.emit(TokenType.RIGHT_BRACE)
             elif self.match(TokenType.COLON.value):
                 self.emit(TokenType.COLON)
             elif self.match(TokenType.NOT.value):
@@ -378,7 +399,7 @@ class Parser(object):
     first_b = frozenset([TokenType.TRUE, TokenType.FALSE])
 
     first_T = frozenset([TokenType.INT, TokenType.VAR, TokenType.STR,
-                         TokenType.LEFT_BRACKET]).union(first_b)
+                         TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE]).union(first_b)
 
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
                            TokenType.TAIL, TokenType.PRINT])
@@ -398,13 +419,16 @@ class Parser(object):
         TokenType.DIV,
         TokenType.SEQ,
         TokenType.WHILE,
-        TokenType.PUSH])
+        TokenType.PUSH,
+        TokenType.GET])
 
-    first_TOP = frozenset([TokenType.IF])
-
-    first_P2 = frozenset([TokenType.VAR])
+    first_TOP = frozenset([TokenType.IF, TokenType.PUT])
 
     first_E = frozenset([TokenType.LEFT_PAREN]).union(first_T)
+
+    first_A2 = frozenset([]).union(first_E)
+
+    first_P2 = frozenset([TokenType.VAR])
 
     first_L2 = frozenset([]).union(first_E)
 
@@ -527,11 +551,32 @@ class Parser(object):
             l = self.L()
             self.match(TokenType.RIGHT_BRACKET)
             return List(l)
+        elif l == TokenType.LEFT_BRACE:
+            self.match(TokenType.LEFT_BRACE)
+            a = self.A()
+            self.match(TokenType.RIGHT_BRACE)
+            return Assoc(a)
         elif l == TokenType.STR:
             s = self.match(TokenType.STR)
             return Str(s.val)
         else:
             raise ValueError
+
+    def A(self):
+        l = self.lookahead()
+        if l in self.first_A2:
+            a2 = self.A2()
+            return a2
+        else:
+            return {}
+
+    def A2(self):
+        k = self.E()
+        self.match(TokenType.COLON)
+        v = self.E()
+        a = self.A()
+        a[k] = v
+        return a
 
     def P(self):
         l = self.lookahead()
@@ -626,6 +671,9 @@ class Parser(object):
         elif l == TokenType.PUSH:
             self.match(TokenType.PUSH)
             return Push
+        elif l == TokenType.GET:
+            self.match(TokenType.GET)
+            return Get
         else:
             raise ValueError
 
@@ -634,6 +682,9 @@ class Parser(object):
         if l == TokenType.IF:
             self.match(TokenType.IF)
             return If
+        elif l == TokenType.PUT:
+            self.match(TokenType.PUT)
+            return Put
         else:
             raise ValueError
 
@@ -676,6 +727,8 @@ class Node(object):
             return Int(e)
         elif type(e) is bool:
             return Bool(e)
+        elif type(e) is str:
+            return Str(e)
         else:
             return e
 
@@ -700,6 +753,12 @@ class Int(Node):
         if not type(val) is int:
             raise TypeError
         self.val = val
+
+    def __hash__(self):
+        return self.val.__hash__()
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.val == other.val
 
     def accept(self, visitor):
         return visitor.visit_int(self)
@@ -821,6 +880,12 @@ class Bool(Node):
             raise TypeError
         self.val = val
 
+    def __hash__(self):
+        return self.val.__hash__()
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.val == other.val
+
     def accept(self, visitor):
         return visitor.visit_bool(self)
 
@@ -862,6 +927,12 @@ class Str(Node):
         if not type(val) is str:
             raise TypeError
         self.val = val
+
+    def __hash__(self):
+        return self.val.__hash__()
+
+    def __eq__(self, other):
+        return self.__class__ == other.__class__ and self.val == other.val
 
     def accept(self, visitor):
         return visitor.visit_str(self)
@@ -994,6 +1065,48 @@ class Call(Node):
 
     def accept(self, visitor):
         return visitor.visit_call(self)
+
+
+class Assoc(Node):
+    def __init__(self, mappings):
+        if not type(mappings) is dict:
+            raise TypeError
+        for k, v in mappings.items():
+            if not (issubclass(type(k), Node) and issubclass(type(v), Node)):
+                raise TypeError
+        self.mappings = mappings
+
+    def accept(self, visitor):
+        return visitor.visit_assoc(self)
+
+    def __str__(self):
+        return Printer()(self)
+
+    def __bool__(self):
+        return len(self.mappings) != 0
+
+
+class Get(Node):
+    def __init__(self, a, k):
+        if not (issubclass(type(a), Node) and issubclass(type(k), Node)):
+            raise TypeError
+        self.a = a
+        self.k = k
+
+    def accept(self, visitor):
+        return visitor.visit_get(self)
+
+
+class Put(Node):
+    def __init__(self, a, k, v):
+        if not (issubclass(type(a), Node) and issubclass(type(k), Node) and issubclass(type(v), Node)):
+            raise TypeError
+        self.a = a
+        self.k = k
+        self.v = v
+
+    def accept(self, visitor):
+        return visitor.visit_put(self)
 
 
 class List(Node):
@@ -1131,6 +1244,15 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_call(self, node):
+        raise NotImplementedError
+
+    def visit_assoc(self, node):
+        raise NotImplementedError
+
+    def visit_get(self, node):
+        raise NotImplementedError
+
+    def visit_put(self, node):
         raise NotImplementedError
 
     def visit_list(self, node):
@@ -1308,6 +1430,25 @@ class Printer(Visitor):
                               ) if len(node.args) > 0 else ""
         return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + self(node.func) + args +
                 TokenType.RIGHT_PAREN.value)
+
+    def visit_assoc(self, node):
+        if not type(node) is Assoc:
+            raise TypeError
+        mappings = " ".join(
+            [("%s%s%s" % (self(k), TokenType.COLON.value, self(node.mappings[k]))) for k in node.mappings])
+        return TokenType.LEFT_BRACE.value + mappings + TokenType.RIGHT_BRACE.value
+
+    def visit_get(self, node):
+        if not type(node) is Get:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.GET.value + " " + self(node.a) + " " + self(node.k) +
+                TokenType.RIGHT_PAREN.value)
+
+    def visit_put(self, node):
+        if not type(node) is Put:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.PUT.value + " " + self(node.a) + " " + self(node.k) + " " +
+                self(node.v) + TokenType.RIGHT_PAREN.value)
 
     def visit_list(self, node):
         if not type(node) is List:
@@ -1626,6 +1767,35 @@ class Evaluator(Visitor):
                 out.env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
         return out
 
+    def visit_assoc(self, node):
+        if not type(node) is Assoc:
+            raise TypeError
+        return node
+
+    def visit_get(self, node):
+        if not type(node) is Get:
+            raise TypeError
+        a = self(node.a)
+        if not type(a) is Assoc:
+            raise TypeError
+        k = Node.wrap(self(node.k))
+        if k not in a.mappings:
+            raise KeyError
+        v = a.mappings[k]
+        return self(v)
+
+    def visit_put(self, node):
+        if not type(node) is Put:
+            raise TypeError
+        a = self(node.a)
+        if not type(a) is Assoc:
+            raise TypeError
+        k = Node.wrap(self(node.k))
+        v = Node.wrap(self(node.v))
+        mappings = copy.copy(a.mappings)
+        mappings[k] = v
+        return Assoc(mappings)
+
     def visit_list(self, node):
         if not type(node) is List:
             raise TypeError
@@ -1635,6 +1805,8 @@ class Evaluator(Visitor):
         if not type(node) is Head:
             raise TypeError
         l = self(node.arg)
+        if not type(l) is List:
+            raise TypeError
         if len(l.elements) <= 0:
             raise ValueError
         h = l.elements[0]
@@ -1644,13 +1816,18 @@ class Evaluator(Visitor):
         if not type(node) is Tail:
             raise TypeError
         l = self(node.arg)
+        if not type(l) is List:
+            raise TypeError
         tail = l.elements[1:]
         return List(tail)
 
     def visit_push(self, node):
         if not type(node) is Push:
             raise TypeError
-        tail = self(node.tail).elements
+        l = self(node.tail)
+        if not type(l) is List:
+            raise TypeError
+        tail = l.elements
         head = Node.wrap(self(node.head))
         return List([head] + tail)
 
