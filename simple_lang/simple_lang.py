@@ -1797,9 +1797,12 @@ class Evaluator(Visitor):
             raise TypeError
         k = Node.wrap(self(node.k))
         v = Node.wrap(self(node.v))
-        mappings = copy.copy(a.mappings)
-        mappings[k] = v
-        return Assoc(mappings)
+        a.mappings[k] = v
+        return a
+        # FixMe: too slow. For now, associations will be mutable
+        #mappings = copy.copy(a.mappings)
+        #mappings[k] = v
+        # return Assoc(mappings)
 
     def visit_list(self, node):
         if not type(node) is List:
