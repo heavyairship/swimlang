@@ -1,4 +1,6 @@
 # FixMe: add full README.md
+# FixMe: generate executable named simpl
+# FixMe: add simplfmt to format .sl files
 
 PYTHON = /usr/bin/python3
 
