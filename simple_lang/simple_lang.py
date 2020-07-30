@@ -1434,9 +1434,14 @@ class Printer(Visitor):
     def visit_assoc(self, node):
         if not type(node) is Assoc:
             raise TypeError
-        mappings = " ".join(
+        if len(node.mappings) == 0:
+            return TokenType.LEFT_BRACE.value + TokenType.RIGHT_BRACE.value
+        indent = self.indent
+        self.indent = indent + "  "
+        mappings = ("\n" + self.indent).join(
             [("%s%s%s" % (self(k), TokenType.COLON.value, self(node.mappings[k]))) for k in node.mappings])
-        return TokenType.LEFT_BRACE.value + mappings + TokenType.RIGHT_BRACE.value
+        self.indent = indent
+        return TokenType.LEFT_BRACE.value + "\n" + self.indent + "  " + mappings + "\n" + self.indent + TokenType.RIGHT_BRACE.value
 
     def visit_get(self, node):
         if not type(node) is Get:
