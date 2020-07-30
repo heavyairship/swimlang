@@ -25,7 +25,7 @@
 # | TOP E E E)
 # | E)
 #
-# E2 ->
+# E2 -> (expression helper)
 # | ε
 # | E
 #
