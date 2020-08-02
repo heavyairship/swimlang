@@ -548,7 +548,7 @@ class Parser(object):
             return Str(s.val)
         elif l == TokenType.NIL:
             self.match(TokenType.NIL)
-            return Nil()
+            return Nil.instance()
         else:
             raise ValueError
 
@@ -1160,12 +1160,25 @@ class Print(Node):
 
 
 class Nil(Node):
-    # FixMe: make singleton
+    __instance__ = None
+
+    @staticmethod
+    def instance():
+        if Nil.__instance__ is None:
+            return Nil()
+        return Nil.__instance__
+
     def __init__(self):
-        pass
+        if Nil.__instance__ is None:
+            Nil.__instance__ = self
+        else:
+            raise Exception("")
 
     def __str__(self):
         return TokenType.NIL.value
+
+    def __hash__(self):
+        return None.__hash__()
 
     def accept(self, visitor):
         return visitor.visit_nil(self)
@@ -1858,7 +1871,7 @@ class Evaluator(Visitor):
         if not type(node) is Print:
             raise TypeError
         print(self(node.arg))
-        return Nil()
+        return Nil.instance()
 
     def visit_nil(self, node):
         if not type(node) is Nil:
