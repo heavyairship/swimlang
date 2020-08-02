@@ -7,8 +7,6 @@
 import simple_lang.simple_lang as sl
 
 import argparse
-import sys
-sys.setrecursionlimit(10**6)  # FixMe: remove and evaluate iteratively
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
