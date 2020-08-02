@@ -16,7 +16,7 @@ uninstall:
 	rm /usr/local/bin/simpl
 	rm /usr/local/bin/simplfmt
 
-check: clean install
+check: clean uninstall install
 	(echo "\nrunning test.py" && $(PYTHON) tests/test.py && \
 	echo "\nrunning test.sl" && simpl examples/test.sl --verbose && \
 	echo "\nrunning factorial.sl" && simpl examples/factorial.sl --verbose && \
@@ -25,7 +25,7 @@ check: clean install
 	echo "\nrunning factorial_rec.sl" && simpl examples/factorial_rec.sl --verbose && \
 	echo "\nrunning call_test.sl" && simpl examples/call_test.sl --verbose && \
 	echo "\nrunning list_example.sl" && simpl examples/list_example.sl --verbose && \
-	echo "\nrunning association.sl" && simpl examples/association.sl --verbose && \
+	echo "\nrunning maps.sl" && simpl examples/maps.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install

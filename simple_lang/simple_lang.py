@@ -1,7 +1,7 @@
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
-# FixMe: try to do faster copies/copy on write for lists, associations, etc.
+# FixMe: try to do faster copies/copy on write for lists, maps, etc.
 # FixMe: allow comments
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
@@ -35,14 +35,14 @@
 # | s
 # | v
 # | [L]
-# | {A}
+# | {M}
 #
-# A -> (association) # FixMe: this should be called hash
+# M -> (mapping
 # | ε
-# | A2
+# | M2
 #
-# A2 -> (association helper)
-# | E:E A
+# M2 -> (mapping helper)
+# | E:E M
 #
 # P -> (param list)
 # | ε
@@ -411,7 +411,7 @@ class Parser(object):
 
     first_E = frozenset([TokenType.LEFT_PAREN]).union(first_T)
 
-    first_A2 = frozenset([]).union(first_E)
+    first_M2 = frozenset([]).union(first_E)
 
     first_P2 = frozenset([TokenType.VAR])
 
@@ -538,30 +538,30 @@ class Parser(object):
             return List(l)
         elif l == TokenType.LEFT_BRACE:
             self.match(TokenType.LEFT_BRACE)
-            a = self.A()
+            m = self.M()
             self.match(TokenType.RIGHT_BRACE)
-            return Assoc(a)
+            return Map(m)
         elif l == TokenType.STR:
             s = self.match(TokenType.STR)
             return Str(s.val)
         else:
             raise ValueError
 
-    def A(self):
+    def M(self):
         l = self.lookahead()
-        if l in self.first_A2:
-            a2 = self.A2()
-            return a2
+        if l in self.first_M2:
+            m2 = self.M2()
+            return m2
         else:
             return {}
 
-    def A2(self):
+    def M2(self):
         k = self.E()
         self.match(TokenType.COLON)
         v = self.E()
-        a = self.A()
-        a[k] = v
-        return a
+        m = self.M()
+        m[k] = v
+        return m
 
     def P(self):
         l = self.lookahead()
@@ -1052,7 +1052,7 @@ class Call(Node):
         return visitor.visit_call(self)
 
 
-class Assoc(Node):
+class Map(Node):
     def __init__(self, mappings):
         if not type(mappings) is dict:
             raise TypeError
@@ -1062,7 +1062,7 @@ class Assoc(Node):
         self.mappings = mappings
 
     def accept(self, visitor):
-        return visitor.visit_assoc(self)
+        return visitor.visit_map(self)
 
     def __str__(self):
         return Printer()(self)
@@ -1231,7 +1231,7 @@ class Visitor(object):
     def visit_call(self, node):
         raise NotImplementedError
 
-    def visit_assoc(self, node):
+    def visit_map(self, node):
         raise NotImplementedError
 
     def visit_get(self, node):
@@ -1416,8 +1416,8 @@ class Printer(Visitor):
         return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + self(node.func) + args +
                 TokenType.RIGHT_PAREN.value)
 
-    def visit_assoc(self, node):
-        if not type(node) is Assoc:
+    def visit_map(self, node):
+        if not type(node) is Map:
             raise TypeError
         if len(node.mappings) == 0:
             return TokenType.LEFT_BRACE.value + TokenType.RIGHT_BRACE.value
@@ -1757,8 +1757,8 @@ class Evaluator(Visitor):
                 out.env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
         return out
 
-    def visit_assoc(self, node):
-        if not type(node) is Assoc:
+    def visit_map(self, node):
+        if not type(node) is Map:
             raise TypeError
         return node
 
@@ -1766,7 +1766,7 @@ class Evaluator(Visitor):
         if not type(node) is Get:
             raise TypeError
         a = self(node.a)
-        if not type(a) is Assoc:
+        if not type(a) is Map:
             raise TypeError
         k = Node.wrap(self(node.k))
         if k not in a.mappings:
@@ -1778,16 +1778,16 @@ class Evaluator(Visitor):
         if not type(node) is Put:
             raise TypeError
         a = self(node.a)
-        if not type(a) is Assoc:
+        if not type(a) is Map:
             raise TypeError
         k = Node.wrap(self(node.k))
         v = Node.wrap(self(node.v))
         a.mappings[k] = v
         return a
-        # FixMe: too slow. For now, associations will be mutable
+        # FixMe: too slow. For now, maps will be mutable
         #mappings = copy.copy(a.mappings)
         #mappings[k] = v
-        # return Assoc(mappings)
+        # return Map(mappings)
 
     def visit_list(self, node):
         if not type(node) is List:
