@@ -1,5 +1,3 @@
-#!/usr/bin/python3
-#
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
@@ -99,13 +97,9 @@
 # | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
 
 import enum
-import argparse
 import json
 import copy
 import pdb
-import sys
-sys.setrecursionlimit(10**6)  # FixMe: remove and evaluate iteratively
-
 
 ##################################################################################
 # Utility functions
@@ -1858,19 +1852,3 @@ class Interpreter(object):
             print("*********************\n")
         res = Evaluator()(ast)
         return res
-
-##################################################################################
-# Main
-##################################################################################
-
-
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        dest="filename", help="path to SimpleLang file", type=str)
-    parser.add_argument("-v", "--verbose", dest="verbose",
-                        help="run in verbose mode", action='store_true')
-    args = parser.parse_args()
-    with open(args.filename) as f:
-        src = f.read()
-        print(Interpreter(src).interpret(verbose=args.verbose))
