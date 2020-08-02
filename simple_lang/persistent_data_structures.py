@@ -21,13 +21,16 @@ class P_List(object):
         self._head = _head
 
     def head(self):
-        return self._head
+        if self._head is None:
+            raise ValueError("`%s` is illegal on empty list" %
+                             self.head.__name__)
+        return self._head._val
 
     def tail(self):
         if self._head is None:
             raise ValueError("`%s` is illegal on empty list" %
                              self.tail.__name__)
-        return self._head._next
+        return P_List(self._head._next)
 
     def push(self, val):
         return P_List(P_List.Node(val, self._head))
