@@ -5,7 +5,6 @@
 # FixMe: allow comments
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
-# FixMe: add noop
 #
 # Grammar:
 #
@@ -36,6 +35,7 @@
 # | v
 # | [L]
 # | {M}
+# | nil
 #
 # M -> (mapping
 # | ε
@@ -188,6 +188,7 @@ class TokenType(enum.Enum):
     PRINT = "print"
     TRUE = "True"
     FALSE = "False"
+    NIL = "nil"
     INT = enum.auto()
     VAR = enum.auto()
     STR = enum.auto()
@@ -216,6 +217,7 @@ KEYWORDS = [
     TokenType.SET.value,
     TokenType.TRUE.value,
     TokenType.FALSE.value,
+    TokenType.NIL.value,
     TokenType.HEAD.value,
     TokenType.TAIL.value,
     TokenType.PUSH.value,
@@ -384,7 +386,7 @@ class Parser(object):
     first_b = frozenset([TokenType.TRUE, TokenType.FALSE])
 
     first_T = frozenset([TokenType.INT, TokenType.VAR, TokenType.STR,
-                         TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE]).union(first_b)
+                         TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE, TokenType.NIL]).union(first_b)
 
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
                            TokenType.TAIL, TokenType.PRINT])
@@ -544,6 +546,9 @@ class Parser(object):
         elif l == TokenType.STR:
             s = self.match(TokenType.STR)
             return Str(s.val)
+        elif l == TokenType.NIL:
+            self.match(TokenType.NIL)
+            return Nil()
         else:
             raise ValueError
 
@@ -1153,6 +1158,18 @@ class Print(Node):
     def accept(self, visitor):
         return visitor.visit_print(self)
 
+
+class Nil(Node):
+    # FixMe: make singleton
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return TokenType.NIL.value
+
+    def accept(self, visitor):
+        return visitor.visit_nil(self)
+
 ##################################################################################
 # Visitor base class
 ##################################################################################
@@ -1253,6 +1270,9 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_print(self, node):
+        raise NotImplementedError
+
+    def visit_nil(self, node):
         raise NotImplementedError
 
 ##################################################################################
@@ -1470,6 +1490,11 @@ class Printer(Visitor):
             raise TypeError
         return (TokenType.LEFT_PAREN.value + TokenType.PRINT.value + " " + self(node.arg) +
                 TokenType.RIGHT_PAREN.value)
+
+    def visit_nil(self, node):
+        if not type(node) is Nil:
+            raise TypeError
+        return TokenType.NIL.value
 
 ##################################################################################
 # AST evaluator
@@ -1760,7 +1785,10 @@ class Evaluator(Visitor):
     def visit_map(self, node):
         if not type(node) is Map:
             raise TypeError
-        return node
+        mappings = {}
+        for k, v in node.mappings.items():
+            mappings[Node.wrap(self(k))] = Node.wrap(self(v))
+        return Map(mappings)
 
     def visit_get(self, node):
         if not type(node) is Get:
@@ -1830,7 +1858,12 @@ class Evaluator(Visitor):
         if not type(node) is Print:
             raise TypeError
         print(self(node.arg))
-        return None
+        return Nil()
+
+    def visit_nil(self, node):
+        if not type(node) is Nil:
+            raise TypeError
+        return node
 
 ##################################################################################
 # AST type checker

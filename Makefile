@@ -1,5 +1,4 @@
 # FixMe: add full README.md
-# FixMe: add simplfmt to format .sl files
 
 PYTHON = /usr/bin/python3
 
