@@ -4,6 +4,8 @@
 # FixMe: try to do faster copies/copy on write for lists, associations, etc.
 # FixMe: allow comments
 # FixMe: add messages for parse/eval errors
+# FixMe: should if/while create their own lexical scopes?
+# FixMe: add noop
 #
 # Grammar:
 #
@@ -35,7 +37,7 @@
 # | [L]
 # | {A}
 #
-# A -> (association)
+# A -> (association) # FixMe: this should be called hash
 # | ε
 # | A2
 #
@@ -88,7 +90,7 @@
 # | False
 #
 # n -> (integer atom)
-# | [0-9]+
+# | [-]*[0-9]+
 #
 # s -> (string atom) # double quotes surrounding any ascii character
 # | "[\x00-\x7F]+"
@@ -269,14 +271,19 @@ class Tokenizer(object):
         return False
 
     def match_int(self):
-        if not numeric(self.peek()):
-            return False
+        old_idx = self.idx
+        sign = 1
+        while self.peek() == '-':
+            self.next()
+            sign *= -1
         num = ""
         while numeric(self.peek()):
             num += self.next()
-        if alpha(self.peek()):
-            raise ValueError
-        self.emit(TokenType.INT, int(num))
+        if alpha(self.peek()) or num == "":
+            self.idx = old_idx
+            return False
+        val = sign*int(num)
+        self.emit(TokenType.INT, val)
         return True
 
     def match_str(self):
@@ -346,6 +353,8 @@ class Tokenizer(object):
                 self.emit(TokenType.GT)
             elif self.match(TokenType.ADD.value):
                 self.emit(TokenType.ADD)
+            elif self.match_int():
+                pass
             elif self.match(TokenType.SUB.value):
                 self.emit(TokenType.SUB)
             elif self.match(TokenType.MUL.value):
@@ -357,8 +366,6 @@ class Tokenizer(object):
             elif self.match_keyword():
                 pass
             elif self.match_var():
-                pass
-            elif self.match_int():
                 pass
             elif self.match_str():
                 pass
@@ -1693,10 +1700,10 @@ class Evaluator(Visitor):
     def visit_var(self, node):
         if not type(node) is Var:
             raise TypeError
-        val = self.read(node.val).val
-        if val is None:
+        binding = self.read(node.val)
+        if binding is None:
             raise ValueError
-        return val
+        return binding.val
 
     def visit_seq(self, node):
         if not type(node) is Seq:
@@ -1804,6 +1811,8 @@ class Evaluator(Visitor):
         l = self(node.arg)
         if not type(l) is List:
             raise TypeError
+        if len(l.elements) <= 0:
+            raise ValueError
         tail = l.elements[1:]
         return List(tail)
 
