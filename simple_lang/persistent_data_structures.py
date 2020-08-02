@@ -27,6 +27,8 @@ class P_List(object):
         return self._head._val
 
     def tail(self):
+        # We can make this more efficient by not having a Node inner class.
+        # If we just have P_Lists, tail doesn't need to make a new object at all.
         if self._head is None:
             raise ValueError("`%s` is illegal on empty list" %
                              self.tail.__name__)
