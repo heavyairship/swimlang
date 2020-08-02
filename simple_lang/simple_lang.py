@@ -1791,7 +1791,7 @@ class Evaluator(Visitor):
     def visit_list(self, node):
         if not type(node) is List:
             raise TypeError
-        return node
+        return List([Node.wrap(self(e)) for e in node.elements])
 
     def visit_head(self, node):
         if not type(node) is Head:
