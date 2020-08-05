@@ -6,6 +6,8 @@
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
 #
+# Comments start with # and extend until the end of line.
+#
 # Grammar:
 #
 # E -> (expression)
@@ -148,6 +150,7 @@ def isspace(val):
 
 
 QUOTE = '"'
+COMMENT = "#"
 
 
 @enum.unique
@@ -229,7 +232,7 @@ KEYWORDS = [
 
 class Tokenizer(object):
     def __init__(self, src):
-        self.src = src
+        self.src = self.remove_comments(src)
         self.end = len(self.src)
         self.idx = 0
         self.tokens = []
@@ -292,7 +295,7 @@ class Tokenizer(object):
         if not self.match(QUOTE):
             return False
         val = ""
-        while self.peek().isascii():
+        while self.peek() and self.peek().isascii():
             if self.peek() == QUOTE and (len(val) == 0 or val[-1] is not '\\'):
                 break
             val += self.next()
@@ -317,9 +320,27 @@ class Tokenizer(object):
             found_space = True
         return found_space
 
+    def remove_comments(self, src):
+        out = []
+        for line in src.split('\n'):
+            found_comment = False
+            in_quotes = False
+            for idx, char in enumerate(line):
+                if not in_quotes and char == QUOTE:
+                    in_quotes = True
+                elif in_quotes and char == QUOTE and line[idx-1] != '\\':
+                    in_quotes = False
+                if char == COMMENT and not in_quotes:
+                    out.append(line[:idx])
+                    found_comment = True
+                    break
+            if not found_comment:
+                out.append(line)
+        return '\n'.join(out)
+
     def tokenize(self):
         if self.done():
-            return None
+            return []
         while not self.done():
             if self.match(TokenType.NOT_EQ.value):
                 self.emit(TokenType.NOT_EQ)
@@ -699,7 +720,7 @@ class Parser(object):
 
     def parse(self):
         if self.done():
-            return None
+            raise ValueError("empty file")
         e = self.E()
         if not self.done():
             raise ValueError
@@ -952,7 +973,6 @@ class While(BinOp):
 
 
 class Let(Node):
-    # FixMe: take in a string, not a Var
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -966,7 +986,6 @@ class Let(Node):
 
 
 class Mut(Node):
-    # FixMe: take in a string, not a Var
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -980,7 +999,6 @@ class Mut(Node):
 
 
 class Set(Node):
-    # FixMe: take in a string, not a Var
     def __init__(self, var, expr):
         if not type(var) is Var:
             raise TypeError
@@ -1727,7 +1745,7 @@ class Evaluator(Visitor):
         # when a nested function is returned and subsequently called outside of its lexical scope;
         # in this case, no propagation is necessary.
         func = self.current_frame().func
-        idx = -2  # FixMe: clean up
+        idx = -2  # index for previous stack frame
         while binding.scope == Scope.INHERITED and func and func.lexical_scope == self.stack[idx].func:
             binding = self.read(node.var.val, self.stack[idx])
             binding.val = val
