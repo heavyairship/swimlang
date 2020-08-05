@@ -39,7 +39,7 @@
 # | {M}
 # | nil
 #
-# M -> (mapping
+# M -> (mapping)
 # | ε
 # | M2
 #
