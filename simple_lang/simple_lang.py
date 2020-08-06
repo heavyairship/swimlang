@@ -1613,7 +1613,7 @@ class Evaluator(Visitor):
         elif current_binding.scope == Scope.PARAM:
             if binding.decl in [Decl.LET, Decl.MUT]:
                 raise ValueError("re-declaration of param %s" % name)
-            elif current_binding.decl == Decl.MUT:
+            elif current_binding.decl == Decl.LET:
                 raise ValueError("cannot rebind non-mutable %s" % name)
             else:
                 raise AssertionError("found mutable param %s" % name)
