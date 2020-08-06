@@ -1124,6 +1124,7 @@ class Put(Node):
 
 
 class List(Node):
+    # FixMe: have this use P_List
     def __init__(self, elements):
         if not type(elements) is list:
             raise TypeError
