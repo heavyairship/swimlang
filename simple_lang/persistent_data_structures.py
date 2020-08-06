@@ -61,14 +61,11 @@ class P_Tree(object):
     # FixMe: add [] operator
     # FixMe: add in operator
     class Node(object):
-        def __init__(self, key, val, parent):
+        def __init__(self, key, val):
             self._key = key
             self._val = val
-            self._parent = parent
             self._left = None
             self._right = None
-            self._next = None
-            self._prev = None
 
         def str_helper(self, indent):
             curr = "  " * indent + str(self._key) + ": " + str(self._val)
@@ -89,24 +86,12 @@ class P_Tree(object):
             hkey = hash(key)
             if hkey < hash(self._key):
                 if self._left is None:
-                    new = P_Tree.Node(key, val, self)
-                    new._next = self
-                    new._prev = self._prev
-                    if self._prev is not None:
-                        self._prev._next = new
-                    self._prev = new
-                    self._left = new
+                    self._left = P_Tree.Node(key, val)
                 else:
                     self._left.put(key, val)
             else:
                 if self._right is None:
-                    new = P_Tree.Node(key, val, self)
-                    new._next = self._next
-                    new._prev = self
-                    if self._next is not None:
-                        self._next._prev = new
-                    self._next = new
-                    self._right = new
+                    self._right = P_Tree.Node(key, val)
                 else:
                     self._right.put(key, val)
 
@@ -124,11 +109,13 @@ class P_Tree(object):
                     raise KeyError
                 return self._right.get(key)
 
-        def first(self):
-            curr = self
-            while curr._left is not None:
-                curr = curr._left
-            return curr
+        def ordered(self, acc):
+            if self._left:
+                self._left.ordered(acc)
+            acc.append(self._key)
+            if self._right:
+                self._right.ordered(acc)
+            return acc
 
     def __init__(self):
         self._root = None
@@ -138,7 +125,7 @@ class P_Tree(object):
 
     def put(self, key, val):
         if self._root is None:
-            self._root = P_Tree.Node(key, val, None)
+            self._root = P_Tree.Node(key, val)
         else:
             self._root.put(key, val)
 
@@ -147,27 +134,11 @@ class P_Tree(object):
             raise KeyError
         return self._root.get(key)
 
-    class Iterator(object):
-        def __init__(self, curr):
-            self._curr = curr
-
-        def __iter__(self):
-            return self
-
-        def __next__(self):
-            if self._curr is None:
-                raise StopIteration
-            out = self._curr._key
-            self._curr = self._curr._next
-            return out
-
-    def first(self):
-        if self._root is None:
-            return None
-        return self._root.first()
-
     def __iter__(self):
-        return P_Tree.Iterator(self.first())
+        if self._root is None:
+            raise StopIteration
+        ordered = self._root.ordered([])
+        return iter(ordered)
 
 
 t = P_Tree()
