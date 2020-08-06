@@ -65,6 +65,7 @@
 # | head
 # | tail
 # | print
+# | keys
 #
 # BOP -> (binary operator)
 # | &&
@@ -189,6 +190,7 @@ class TokenType(enum.Enum):
     PUSH = "push"
     GET = "get"
     PUT = "put"
+    KEYS = "keys"
     PRINT = "print"
     TRUE = "True"
     FALSE = "False"
@@ -227,6 +229,7 @@ KEYWORDS = [
     TokenType.PUSH.value,
     TokenType.GET.value,
     TokenType.PUT.value,
+    TokenType.KEYS.value,
     TokenType.PRINT.value
 ]
 
@@ -411,7 +414,7 @@ class Parser(object):
                          TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE, TokenType.NIL]).union(first_b)
 
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
-                           TokenType.TAIL, TokenType.PRINT])
+                           TokenType.TAIL, TokenType.KEYS, TokenType.PRINT])
 
     first_BOP = frozenset([
         TokenType.AND,
@@ -636,6 +639,9 @@ class Parser(object):
         elif l == TokenType.PRINT:
             self.match(TokenType.PRINT)
             return Print
+        elif l == TokenType.KEYS:
+            self.match(TokenType.KEYS)
+            return Keys
         else:
             raise ValueError
 
@@ -1123,6 +1129,16 @@ class Put(Node):
         return visitor.visit_put(self)
 
 
+class Keys(Node):
+    def __init__(self, m):
+        if not issubclass(type(m), Node):
+            raise TypeError
+        self.m = m
+
+    def accept(self, visitor):
+        return visitor.visit_keys(self)
+
+
 class List(Node):
     # FixMe: have this use P_List
     def __init__(self, elements):
@@ -1293,6 +1309,9 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_put(self, node):
+        raise NotImplementedError
+
+    def visit_keys(self, node):
         raise NotImplementedError
 
     def visit_list(self, node):
@@ -1497,6 +1516,11 @@ class Printer(Visitor):
             raise TypeError
         return (TokenType.LEFT_PAREN.value + TokenType.PUT.value + " " + self(node.m) + " " + self(node.k) + " " +
                 self(node.v) + TokenType.RIGHT_PAREN.value)
+
+    def visit_keys(self, node):
+        if not type(node) is Keys:
+            raise TypeError
+        return TokenType.KEYS.value + " " + self(node.m)
 
     def visit_list(self, node):
         if not type(node) is List:
@@ -1850,6 +1874,15 @@ class Evaluator(Visitor):
         v = Node.wrap(self(node.v))
         new_mappings = m.mappings.put(k, v)
         return Map(new_mappings)
+
+    def visit_keys(self, node):
+        if not type(node) is Keys:
+            raise TypeError
+        m = self(node.m)
+        if not type(m) is Map:
+            raise TypeError
+        keys = List(m.mappings.keys())
+        return keys
 
     def visit_list(self, node):
         if not type(node) is List:

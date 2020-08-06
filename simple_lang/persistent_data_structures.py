@@ -194,18 +194,22 @@ class P_Tree(object):
         return True
 
     def __iter__(self):
+        # FixMe: use a generator instead
+        return iter(self.keys())
+
+    def keys(self):
         ordered_keys = []
         if self._root is None:
-            return iter(ordered_keys)
+            return ordered_keys
         self._root.ordered_keys(ordered_keys)
-        return iter(ordered_keys)
+        return ordered_keys
 
     def items(self):
         ordered_items = []
         if self._root is None:
-            return iter(ordered_items)
+            return ordered_items
         self._root.ordered_items(ordered_items)
-        return iter(ordered_items)
+        return ordered_items
 
     def __len__(self):
         # FixMe: make this O(1)

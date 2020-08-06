@@ -8,3 +8,18 @@
 (print m2);
 (print m3);
 (print m4);
+(func f m:
+    (get m 0)
+);
+(call f m4);
+(func printmap m:
+    (mut keylist (keys m));
+    (mut k nil);
+    (while keylist (
+        (set k (head keylist));
+        (print k);
+        (print (get m k));
+        (set keylist (tail keylist));
+    ));
+);
+(call printmap m4);
