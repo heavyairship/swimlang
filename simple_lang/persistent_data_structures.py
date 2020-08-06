@@ -60,8 +60,12 @@ class P_Tree(object):
     # FixMe: make this persistent
     # FixMe: add [] operator
     # FixMe: add in operator
+
     class Node(object):
+        count = 0
+
         def __init__(self, key, val):
+            P_Tree.Node.count += 1
             self._key = key
             self._val = val
             self._left = None
@@ -84,16 +88,26 @@ class P_Tree(object):
 
         def put(self, key, val):
             hkey = hash(key)
-            if hkey < hash(self._key):
+            self_hkey = hash(self._key)
+            out = P_Tree.Node(self._key, self._val)
+            if hkey == self_hkey:
+                # FixMe: what about hash collisions? Really need a list here
+                # of keys that have this hash
+                out._left = self._left
+                out._right = self._right
+            elif hkey < self_hkey:
                 if self._left is None:
-                    self._left = P_Tree.Node(key, val)
+                    out._left = P_Tree.Node(key, val)
                 else:
-                    self._left.put(key, val)
+                    out._left = self._left.put(key, val)
+                out._right = self._right
             else:
                 if self._right is None:
-                    self._right = P_Tree.Node(key, val)
+                    out._right = P_Tree.Node(key, val)
                 else:
-                    self._right.put(key, val)
+                    out._right = self._right.put(key, val)
+                out._left = self._left
+            return out
 
         def get(self, key):
             hkey = hash(key)
@@ -110,12 +124,12 @@ class P_Tree(object):
                 return self._right.get(key)
 
         def ordered(self, acc):
+            # FixMe: make iterative
             if self._left:
                 self._left.ordered(acc)
             acc.append(self._key)
             if self._right:
                 self._right.ordered(acc)
-            return acc
 
     def __init__(self):
         self._root = None
@@ -124,50 +138,63 @@ class P_Tree(object):
         return str(self._root)
 
     def put(self, key, val):
+        out = P_Tree()
         if self._root is None:
-            self._root = P_Tree.Node(key, val)
+            out._root = P_Tree.Node(key, val)
         else:
-            self._root.put(key, val)
+            out._root = self._root.put(key, val)
+        return out
 
     def get(self, key):
         if self._root is None:
             raise KeyError
         return self._root.get(key)
 
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __contains__(self, key):
+        try:
+            self[key]
+        except KeyError:
+            return False
+        return True
+
     def __iter__(self):
+        ordered = []
         if self._root is None:
-            raise StopIteration
-        ordered = self._root.ordered([])
+            return iter(ordered)
+        self._root.ordered(ordered)
         return iter(ordered)
 
 
 t = P_Tree()
-t.put(4, "44")
-l = [x for x in t]
-print(l)
+t1 = t.put(3, "33")
+t2 = t1.put(1, "11")
+t3 = t2.put(2, "22")
+t4 = t3.put(5, "55")
+t5 = t4.put(4, "44")
+assert([(k, t[k]) for k in t] == [])
+assert([(k, t1[k]) for k in t1] == [(3, "33")])
+assert([(k, t2[k]) for k in t2] == [(1, "11"), (3, "33")])
+assert([(k, t3[k]) for k in t3] == [(1, "11"), (2, "22"), (3, "33")])
+assert([(k, t4[k]) for k in t4] == [
+       (1, "11"), (2, "22"), (3, "33"), (5, "55")])
+assert([(k, t5[k]) for k in t5] == [
+    (1, "11"), (2, "22"), (3, "33"), (4, "44"), (5, "55")])
+# Due to sharing where possible, we only need 11 total nodes, not 15, despite being immutable!
+assert(P_Tree.Node.count == 11)
 
-t.put(2, "22")
-l = [x for x in t]
-print(l)
-
-t.put(6, "66")
-l = [x for x in t]
-print(l)
-
-t.put(1, "11")
-l = [x for x in t]
-print(l)
-
-t.put(3, "33")
-l = [x for x in t]
-print(l)
-
-t.put(5, "55")
-l = [x for x in t]
-print(l)
-
-t.put(7, "77")
-l = [x for x in t]
-print(l)
-
-print(t)
+P_Tree.Node.count = 0
+random_tree = P_Tree()
+n = 1000
+for i in range(n):
+    import random
+    random_tree = random_tree.put(int(random.random()*1000), i)
+nodes_without_sharing = int((n*(n+1))/2)
+nodes_with_sharing = P_Tree.Node.count
+print("Used %d nodes total" % nodes_with_sharing)
+print("Saved %d nodes by sharing (absolute)" %
+      (nodes_without_sharing - nodes_with_sharing))
+print("Needed %dx fewer nodes due to sharing (ratio)" %
+      (nodes_without_sharing/nodes_with_sharing))
