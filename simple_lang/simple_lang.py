@@ -104,6 +104,7 @@ import enum
 import json
 import copy
 import pdb
+from simple_lang.persistent_data_structures import P_Tree
 
 ##################################################################################
 # Utility functions
@@ -1076,13 +1077,17 @@ class Call(Node):
 
 
 class Map(Node):
+    # FixMe: make this just derive from P_List?
     def __init__(self, mappings):
-        if not type(mappings) is dict:
+        if type(mappings) is dict:
+            for k, v in mappings.items():
+                if not (issubclass(type(k), Node) and issubclass(type(v), Node)):
+                    raise TypeError
+            self.mappings = P_Tree(mappings)
+        elif type(mappings) is P_Tree:
+            self.mappings = mappings
+        else:
             raise TypeError
-        for k, v in mappings.items():
-            if not (issubclass(type(k), Node) and issubclass(type(v), Node)):
-                raise TypeError
-        self.mappings = mappings
 
     def accept(self, visitor):
         return visitor.visit_map(self)
@@ -1095,10 +1100,10 @@ class Map(Node):
 
 
 class Get(Node):
-    def __init__(self, a, k):
-        if not (issubclass(type(a), Node) and issubclass(type(k), Node)):
+    def __init__(self, m, k):
+        if not (issubclass(type(m), Node) and issubclass(type(k), Node)):
             raise TypeError
-        self.a = a
+        self.m = m
         self.k = k
 
     def accept(self, visitor):
@@ -1106,10 +1111,10 @@ class Get(Node):
 
 
 class Put(Node):
-    def __init__(self, a, k, v):
-        if not (issubclass(type(a), Node) and issubclass(type(k), Node) and issubclass(type(v), Node)):
+    def __init__(self, m, k, v):
+        if not (issubclass(type(m), Node) and issubclass(type(k), Node) and issubclass(type(v), Node)):
             raise TypeError
-        self.a = a
+        self.m = m
         self.k = k
         self.v = v
 
@@ -1482,13 +1487,13 @@ class Printer(Visitor):
     def visit_get(self, node):
         if not type(node) is Get:
             raise TypeError
-        return (TokenType.LEFT_PAREN.value + TokenType.GET.value + " " + self(node.a) + " " + self(node.k) +
+        return (TokenType.LEFT_PAREN.value + TokenType.GET.value + " " + self(node.m) + " " + self(node.k) +
                 TokenType.RIGHT_PAREN.value)
 
     def visit_put(self, node):
         if not type(node) is Put:
             raise TypeError
-        return (TokenType.LEFT_PAREN.value + TokenType.PUT.value + " " + self(node.a) + " " + self(node.k) + " " +
+        return (TokenType.LEFT_PAREN.value + TokenType.PUT.value + " " + self(node.m) + " " + self(node.k) + " " +
                 self(node.v) + TokenType.RIGHT_PAREN.value)
 
     def visit_list(self, node):
@@ -1824,29 +1829,25 @@ class Evaluator(Visitor):
     def visit_get(self, node):
         if not type(node) is Get:
             raise TypeError
-        a = self(node.a)
-        if not type(a) is Map:
+        m = self(node.m)
+        if not type(m) is Map:
             raise TypeError
         k = Node.wrap(self(node.k))
-        if k not in a.mappings:
+        if k not in m.mappings:
             raise KeyError
-        v = a.mappings[k]
+        v = m.mappings[k]
         return self(v)
 
     def visit_put(self, node):
         if not type(node) is Put:
             raise TypeError
-        a = self(node.a)
-        if not type(a) is Map:
+        m = self(node.m)
+        if not type(m) is Map:
             raise TypeError
         k = Node.wrap(self(node.k))
         v = Node.wrap(self(node.v))
-        a.mappings[k] = v
-        return a
-        # FixMe: too slow. For now, maps will be mutable
-        #mappings = copy.copy(a.mappings)
-        #mappings[k] = v
-        # return Map(mappings)
+        new_mappings = m.mappings.put(k, v)
+        return Map(new_mappings)
 
     def visit_list(self, node):
         if not type(node) is List:

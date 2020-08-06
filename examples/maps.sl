@@ -1,8 +1,10 @@
 (let m {});
-(put m "0" 0);
-(put m "1" 1);
-(put m 0 "0");
-(put m 1 "1");
+(let m1 (put m "0" 0));
+(let m2 (put m1 "1" 1));
+(let m3 (put m2 0 "0"));
+(let m4 (put m3 1 "1"));
 (print m);
-(print (get m 0));
-(print (get m "0"));
+(print m1);
+(print m2);
+(print m3);
+(print m4);

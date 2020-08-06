@@ -11,6 +11,7 @@ class P_List(object):
     # FixMe: add iterator
     # FixMe: add [] operator
     # FixMe: add in operator
+    # FIxMe: test
     class Node(object):
         def __init__(self, val, next):
             self._val = val
@@ -57,15 +58,11 @@ class P_List(object):
 
 class P_Tree(object):
     # FixMe: change this from a vanilla BST to a RBTree
-    # FixMe: make this persistent
-    # FixMe: add [] operator
-    # FixMe: add in operator
+    # FixMe: add Entry type to contain key, val
 
     class Node(object):
-        count = 0
 
         def __init__(self, key, val):
-            P_Tree.Node.count += 1
             self._key = key
             self._val = val
             self._left = None
@@ -86,6 +83,23 @@ class P_Tree(object):
         def __str__(self):
             return self.str_helper(0)
 
+        def _put_mutable(self, key, val):
+            hkey = hash(key)
+            self_hkey = hash(self._key)
+            if hkey == self_hkey:
+                self._key = key
+                self._val = val
+            elif hkey < self_hkey:
+                if self._left is None:
+                    self._left = P_Tree.Node(key, val)
+                else:
+                    self._left._put_mutable(key, val)
+            else:
+                if self._right is None:
+                    self._right = P_Tree.Node(key, val)
+                else:
+                    self._right._put_mutable(key, val)
+
         def put(self, key, val):
             hkey = hash(key)
             self_hkey = hash(self._key)
@@ -93,6 +107,8 @@ class P_Tree(object):
             if hkey == self_hkey:
                 # FixMe: what about hash collisions? Really need a list here
                 # of keys that have this hash
+                out._key = key
+                out._val = val
                 out._left = self._left
                 out._right = self._right
             elif hkey < self_hkey:
@@ -123,19 +139,36 @@ class P_Tree(object):
                     raise KeyError
                 return self._right.get(key)
 
-        def ordered(self, acc):
+        def ordered_keys(self, acc):
             # FixMe: make iterative
             if self._left:
-                self._left.ordered(acc)
+                self._left.ordered_keys(acc)
             acc.append(self._key)
             if self._right:
-                self._right.ordered(acc)
+                self._right.ordered_keys(acc)
 
-    def __init__(self):
+        def ordered_items(self, acc):
+            # FixMe: make iterative
+            if self._left:
+                self._left.ordered_items(acc)
+            acc.append((self._key, self._val))
+            if self._right:
+                self._right.ordered_items(acc)
+
+    def __init__(self, init_mappings=None):
         self._root = None
+        if init_mappings:
+            for key, val in init_mappings.items():
+                self._put_mutable(key, val)
 
     def __str__(self):
         return str(self._root)
+
+    def _put_mutable(self, key, val):
+        if self._root is None:
+            self._root = P_Tree.Node(key, val)
+        else:
+            self._root._put_mutable(key, val)
 
     def put(self, key, val):
         out = P_Tree()
@@ -161,40 +194,42 @@ class P_Tree(object):
         return True
 
     def __iter__(self):
-        ordered = []
+        ordered_keys = []
         if self._root is None:
-            return iter(ordered)
-        self._root.ordered(ordered)
-        return iter(ordered)
+            return iter(ordered_keys)
+        self._root.ordered_keys(ordered_keys)
+        return iter(ordered_keys)
+
+    def items(self):
+        ordered_items = []
+        if self._root is None:
+            return iter(ordered_items)
+        self._root.ordered_items(ordered_items)
+        return iter(ordered_items)
+
+    def __len__(self):
+        # FixMe: make this O(1)
+        size = 0
+        for _ in self:
+            size += 1
+        return size
 
 
-t = P_Tree()
-t1 = t.put(3, "33")
-t2 = t1.put(1, "11")
-t3 = t2.put(2, "22")
-t4 = t3.put(5, "55")
-t5 = t4.put(4, "44")
-assert([(k, t[k]) for k in t] == [])
-assert([(k, t1[k]) for k in t1] == [(3, "33")])
-assert([(k, t2[k]) for k in t2] == [(1, "11"), (3, "33")])
-assert([(k, t3[k]) for k in t3] == [(1, "11"), (2, "22"), (3, "33")])
-assert([(k, t4[k]) for k in t4] == [
-       (1, "11"), (2, "22"), (3, "33"), (5, "55")])
-assert([(k, t5[k]) for k in t5] == [
-    (1, "11"), (2, "22"), (3, "33"), (4, "44"), (5, "55")])
+# FixMe: add to test file
+#t = P_Tree()
+#t1 = t.put(3, "33")
+#t2 = t1.put(1, "11")
+#t3 = t2.put(2, "22")
+#t4 = t3.put(5, "55")
+#t5 = t4.put(4, "44")
+#assert([(k, t[k]) for k in t] == [])
+#assert([(k, t1[k]) for k in t1] == [(3, "33")])
+#assert([(k, t2[k]) for k in t2] == [(1, "11"), (3, "33")])
+#assert([(k, t3[k]) for k in t3] == [(1, "11"), (2, "22"), (3, "33")])
+# assert([(k, t4[k]) for k in t4] == [
+#       (1, "11"), (2, "22"), (3, "33"), (5, "55")])
+# assert([(k, t5[k]) for k in t5] == [
+#    (1, "11"), (2, "22"), (3, "33"), (4, "44"), (5, "55")])
 # Due to sharing where possible, we only need 11 total nodes, not 15, despite being immutable!
-assert(P_Tree.Node.count == 11)
-
-P_Tree.Node.count = 0
-random_tree = P_Tree()
-n = 1000
-for i in range(n):
-    import random
-    random_tree = random_tree.put(int(random.random()*1000), i)
-nodes_without_sharing = int((n*(n+1))/2)
-nodes_with_sharing = P_Tree.Node.count
-print("Used %d nodes total" % nodes_with_sharing)
-print("Saved %d nodes by sharing (absolute)" %
-      (nodes_without_sharing - nodes_with_sharing))
-print("Needed %dx fewer nodes due to sharing (ratio)" %
-      (nodes_without_sharing/nodes_with_sharing))
+#t = P_Tree({1: "11", 2: "22", 3: "33"})
+# print(t)
