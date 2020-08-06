@@ -1077,7 +1077,8 @@ class Call(Node):
 
 
 class Map(Node):
-    # FixMe: make this just derive from P_List?
+    # FixMe: hide P_Tree internals better? I.e. only initialize with
+    # dict, and have put, [], len, iter functions here that call into P_Tree functions?
     def __init__(self, mappings):
         if type(mappings) is dict:
             for k, v in mappings.items():
