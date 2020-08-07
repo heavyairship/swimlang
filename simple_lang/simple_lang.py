@@ -16,7 +16,7 @@
 # | E;E2
 #
 # E1 -> (expression helper)
-# | func v P: E)
+# | func v P: E) # FixMe: remove inherently named functions, they should just be expressions that can be named via let/mut/set.
 # | call E L)
 # | let v E)
 # | mut v E)
