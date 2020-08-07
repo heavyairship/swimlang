@@ -1476,12 +1476,18 @@ class Printer(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
+        if node.name:
+            func_name = node.name
+        else:
+            # FixMe: this prob should be removed b/c List/Map __str__ functions should not use Printer
+            # Hack to look up names for 'anonymous' functions
+            func_name = [n for (n, b) in node.env.items() if b.val == node][0]
         params = " " + " ".join(node.params) if len(node.params) > 0 else ""
         indent = self.indent
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + node.name + params + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + func_name + params + TokenType.COLON.value +
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
@@ -1578,16 +1584,13 @@ class Decl(enum.Enum):
 
 
 class Binding(object):
-    def __init__(self, scope, decl, is_current_func, val):
+    def __init__(self, scope, decl, val):
         if type(scope) is not Scope:
             raise TypeError
         if type(decl) is not Decl:
             raise TypeError
-        if type(is_current_func) is not bool:
-            raise TypeError
         self.scope = scope
         self.decl = decl
-        self.is_current_func = is_current_func
         self.val = val
 
 
@@ -1632,10 +1635,7 @@ class Evaluator(Visitor):
             else:
                 frame.env[name] = binding
         elif current_binding.scope == Scope.INHERITED:
-            if current_binding.is_current_func:
-                raise ValueError(
-                    "re-binding of current function %s" % name)
-            elif binding.decl in [Decl.LET, Decl.MUT]:
+            if binding.decl in [Decl.LET, Decl.MUT]:
                 frame.env[name] = binding
             elif current_binding.decl == Decl.LET:
                 raise ValueError("cannot rebind non-mutable %s" % name)
@@ -1749,7 +1749,7 @@ class Evaluator(Visitor):
         if not type(node) is Let:
             raise TypeError
         val = self(node.expr)
-        binding = Binding(Scope.LOCAL, Decl.LET, False, val)
+        binding = Binding(Scope.LOCAL, Decl.LET, val)
         self.write(node.var.val, binding)
         return val
 
@@ -1757,7 +1757,7 @@ class Evaluator(Visitor):
         if not type(node) is Mut:
             raise TypeError
         val = self(node.expr)
-        binding = Binding(Scope.LOCAL, Decl.MUT, False, val)
+        binding = Binding(Scope.LOCAL, Decl.MUT, val)
         self.write(node.var.val, binding)
         return val
 
@@ -1768,7 +1768,7 @@ class Evaluator(Visitor):
         if binding is None:
             raise ValueError
         val = self(node.expr)
-        binding = Binding(binding.scope, Decl.NONE, False, val)
+        binding = Binding(binding.scope, Decl.NONE, val)
         self.write(node.var.val, binding)
         # Propagate write up call stack as long as the calling context is the same as the lexical
         # scope, as is the case when nested functions are called within their enclosing lexical
@@ -1801,14 +1801,20 @@ class Evaluator(Visitor):
     def visit_func(self, node):
         if not type(node) is Func:
             raise TypeError
-        out = Func(node.name, node.params, node.body,
-                   self.current_frame().func)
+
+        # Function is anonymous, i.e. already a closure. Just return it.
+        if node.name is None:
+            return node
+
+        # Function delcaration case.
+        # Make an anonymous copy of the function which will be returned.
+        # This is important to prevent re-declarations and to support closures.
+        out = Func(None, node.params, node.body, self.current_frame().func)
         out.env = {}
         for name, binding in self.current_frame().env.items():
-            out.env[name] = Binding(
-                Scope.INHERITED, binding.decl, False, binding.val)
-        out.env[out.name] = Binding(Scope.INHERITED, Decl.LET, False, out)
-        self.write(out.name, out.env[out.name])
+            out.env[name] = Binding(Scope.INHERITED, binding.decl, binding.val)
+        out.env[node.name] = Binding(Scope.PARAM, Decl.LET, out)
+        self.write(node.name, Binding(Scope.LOCAL, Decl.LET, out))
         return out
 
     def visit_call(self, node):
@@ -1823,25 +1829,23 @@ class Evaluator(Visitor):
             # All params available - evaluate the function
             env = {}
             for name, binding in func.env.items():
-                env[name] = Binding(
-                    binding.scope, binding.decl, False, binding.val)
+                env[name] = Binding(binding.scope, binding.decl, binding.val)
             for i, a in enumerate(node.args):
                 name = func.params[i]
-                env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
-            env[func.name] = Binding(Scope.INHERITED, Decl.LET, True, func)
+                env[name] = Binding(Scope.PARAM, Decl.LET, self(a))
             self.stack.append(Frame(func, env))
             out = self(func.body)
             self.stack.pop()
         else:
             # Not all params available - return a closure
             params = [p for p in func.params[len(node.args):]]
-            out = Func(func.name, params, func.body, func.lexical_scope)
+            out = Func(None, params, func.body, func.lexical_scope)
             for name, binding in func.env.items():
                 out.env[name] = Binding(
-                    binding.scope, binding.decl, False, binding.val)
+                    binding.scope, binding.decl, binding.val)
             for i, a in enumerate(node.args):
                 name = func.params[i]
-                out.env[name] = Binding(Scope.PARAM, Decl.LET, False, self(a))
+                out.env[name] = Binding(Scope.PARAM, Decl.LET, self(a))
         return out
 
     def visit_map(self, node):

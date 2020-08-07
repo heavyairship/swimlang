@@ -4,7 +4,7 @@
 );
 (func foo y: (
     (set x 2);
-    (+ y x);
+    (print (+ y x));
     (call bar)
 ));
 (call foo x);
