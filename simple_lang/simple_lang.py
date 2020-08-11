@@ -97,7 +97,7 @@
 # | "[\x00-\x7F]+"
 #
 # v -> (variable) # FixMe: var/id should be different
-# | [a-zA-Z]+[a-zA-Z0-9]/{True, False}
+# | [a-zA-Z]+[a-zA-Z0-9_]/{True, False}
 
 import enum
 import json
@@ -111,7 +111,7 @@ from simple_lang.persistent_data_structures import *
 
 
 def alpha(val):
-    if val is None:
+    if val is None or val == '':
         return False
     for c in val:
         ordc = ord(c.lower())
@@ -121,7 +121,7 @@ def alpha(val):
 
 
 def numeric(val):
-    if val is None:
+    if val is None or val == '':
         return False
     for c in val:
         ordc = ord(c)
@@ -131,10 +131,21 @@ def numeric(val):
 
 
 def alphanumeric(val):
-    if val is None:
+    if val is None or val == '':
         return False
     for c in val:
         if not (alpha(c) or numeric(c)):
+            return False
+    return True
+
+
+def valid_var(val):
+    if val is None or val == '':
+        return False
+    if not alpha(val[0]):
+        return False
+    for c in val:
+        if not (alphanumeric(c) or c == '_'):
             return False
     return True
 
@@ -271,7 +282,8 @@ class Tokenizer(object):
     def match_keyword(self):
         for kw in KEYWORDS:
             n = len(kw)
-            if self.peek(n) == kw and not alphanumeric(self.at(self.idx+n)):
+            after_kw = self.at(self.idx+n)
+            if self.peek(n) == kw and not (alphanumeric(after_kw) or after_kw == '_'):
                 self.match(kw)
                 self.emit(TokenType(kw))
                 return True
@@ -310,7 +322,7 @@ class Tokenizer(object):
         if not alpha(self.peek()):
             return False
         var = ""
-        while alphanumeric(self.peek()):
+        while alphanumeric(self.peek()) or self.peek() == '_':
             var += self.next()
         self.emit(TokenType.VAR, var)
         return True
@@ -554,8 +566,8 @@ class Parser(object):
             b = self.b()
             return Bool(b)
         elif l == TokenType.VAR:
-            v = self.match(TokenType.VAR)
-            return Var(v.val)
+            v = self.v()
+            return v
         elif l == TokenType.LEFT_BRACKET:
             self.match(TokenType.LEFT_BRACKET)
             l = self.L()
@@ -1020,7 +1032,7 @@ class Var(Node):
     def __init__(self, val):
         if not type(val) is str:
             raise TypeError
-        if not (len(val) > 0 and alpha(val[0]) and alphanumeric(val)):
+        if not valid_var(val):
             raise TypeError
         self.val = val
 
@@ -1220,6 +1232,9 @@ class Nil(Node):
 
     def __hash__(self):
         return None.__hash__()
+
+    def __bool__(self):
+        return False
 
     def accept(self, visitor):
         return visitor.visit_nil(self)
