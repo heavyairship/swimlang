@@ -11,7 +11,22 @@ class P_List(object):
     # FixMe: add iterator
     # FixMe: add [] operator
     # FixMe: add in operator
-    # FIxMe: test
+    # FixMe: test
+
+    class Iterator(object):
+        def __init__(self, start):
+            self._curr = start
+
+        def __next__(self):
+            if self._curr is None:
+                raise StopIteration
+            val = self._curr._val
+            self._curr = self._curr._next
+            return val
+
+        def __iter__(self):
+            return self
+
     class Node(object):
         def __init__(self, val, next):
             self._val = val
@@ -20,10 +35,22 @@ class P_List(object):
         def __str__(self):
             return str(self._val)
 
-    def __init__(self, _head=None):
-        if not (type(_head) is P_List.Node or _head is None):
+    def __init__(self, initial=None):
+        if type(initial) is P_List.Node or initial is None:
+            self._head = initial
+        elif type(initial) is list:
+            self._head = None
+            curr = None
+            for v in initial:
+                new = P_List.Node(v, None)
+                if self._head is None:
+                    self._head = new
+                    curr = self._head
+                else:
+                    curr._next = new
+                    curr = curr._next
+        else:
             raise TypeError
-        self._head = _head
 
     def head(self):
         if self._head is None:
@@ -32,8 +59,6 @@ class P_List(object):
         return self._head._val
 
     def tail(self):
-        # FixMe: we can make this more efficient by not having a Node inner class.
-        # If we just have P_Lists, tail doesn't need to make a new object at all.
         if self._head is None:
             raise ValueError("`%s` is illegal on empty list" %
                              self.tail.__name__)
@@ -54,6 +79,20 @@ class P_List(object):
             out += str(curr)
             curr = curr._next
         return "[" + out + "]"
+
+    def __iter__(self):
+        return P_List.Iterator(self._head)
+
+    def __len__(self):
+        # FixMe: make this O(1)
+        size = 0
+        for _ in self:
+            size += 1
+        return size
+
+##################################################################################
+# P_Tree
+##################################################################################
 
 
 class P_Tree(object):
@@ -200,16 +239,16 @@ class P_Tree(object):
     def keys(self):
         ordered_keys = []
         if self._root is None:
-            return ordered_keys
+            return P_List(ordered_keys)
         self._root.ordered_keys(ordered_keys)
-        return ordered_keys
+        return P_List(ordered_keys)
 
     def items(self):
         ordered_items = []
         if self._root is None:
-            return ordered_items
+            return P_List(ordered_items)
         self._root.ordered_items(ordered_items)
-        return ordered_items
+        return P_List(ordered_items)
 
     def __len__(self):
         # FixMe: make this O(1)

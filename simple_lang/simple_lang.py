@@ -1,8 +1,6 @@
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
-# FixMe: try to do faster copies/copy on write for lists, maps, etc.
-# FixMe: allow comments
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
 #
@@ -16,7 +14,7 @@
 # | E;E2
 #
 # E1 -> (expression helper)
-# | func v P: E) # FixMe: remove inherently named functions, they should just be expressions that can be named via let/mut/set.
+# | func v P: E) #
 # | call E L)
 # | let v E)
 # | mut v E)
@@ -105,7 +103,7 @@ import enum
 import json
 import copy
 import pdb
-from simple_lang.persistent_data_structures import P_Tree
+from simple_lang.persistent_data_structures import *
 
 ##################################################################################
 # Utility functions
@@ -1083,8 +1081,7 @@ class Call(Node):
 
 
 class Map(Node):
-    # FixMe: hide P_Tree internals better? I.e. only initialize with
-    # dict, and have put, [], len, iter functions here that call into P_Tree functions?
+    # FixMe: don't expose P_Tree internals?
     def __init__(self, mappings):
         if type(mappings) is dict:
             for k, v in mappings.items():
@@ -1140,14 +1137,17 @@ class Keys(Node):
 
 
 class List(Node):
-    # FixMe: have this use P_List
+    # FixMe: don't expose P_List internals?
     def __init__(self, elements):
-        if not type(elements) is list:
+        if type(elements) is list:
+            for e in elements:
+                if not issubclass(type(e), Node):
+                    raise TypeError
+            self.elements = P_List(elements)
+        elif type(elements) is P_List:
+            self.elements = elements
+        else:
             raise TypeError
-        for e in elements:
-            if not issubclass(type(e), Node):
-                raise TypeError
-        self.elements = elements
 
     def accept(self, visitor):
         return visitor.visit_list(self)
@@ -1901,8 +1901,8 @@ class Evaluator(Visitor):
             raise TypeError
         if len(l.elements) <= 0:
             raise ValueError
-        h = l.elements[0]
-        return self(h)
+        head = l.elements.head()
+        return self(head)
 
     def visit_tail(self, node):
         if not type(node) is Tail:
@@ -1912,7 +1912,7 @@ class Evaluator(Visitor):
             raise TypeError
         if len(l.elements) <= 0:
             raise ValueError
-        tail = l.elements[1:]
+        tail = l.elements.tail()
         return List(tail)
 
     def visit_push(self, node):
@@ -1923,7 +1923,7 @@ class Evaluator(Visitor):
             raise TypeError
         tail = l.elements
         head = Node.wrap(self(node.head))
-        return List([head] + tail)
+        return List(tail.push(head))
 
     def visit_print(self, node):
         if not type(node) is Print:
