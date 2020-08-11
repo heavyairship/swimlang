@@ -1087,7 +1087,7 @@ class Map(Node):
             for k, v in mappings.items():
                 if not (issubclass(type(k), Node) and issubclass(type(v), Node)):
                     raise TypeError
-            self.mappings = P_Tree(mappings)
+            self.mappings = P_Tree(init_mappings=mappings)
         elif type(mappings) is P_Tree:
             self.mappings = mappings
         else:
@@ -1143,7 +1143,7 @@ class List(Node):
             for e in elements:
                 if not issubclass(type(e), Node):
                     raise TypeError
-            self.elements = P_List(elements)
+            self.elements = P_List(initial=elements)
         elif type(elements) is P_List:
             self.elements = elements
         else:

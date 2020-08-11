@@ -35,10 +35,17 @@ class P_List(object):
         def __str__(self):
             return str(self._val)
 
-    def __init__(self, initial=None):
-        if type(initial) is P_List.Node or initial is None:
+    def __init__(self, initial=None, size=None):
+        if type(initial) is P_List.Node:
             self._head = initial
+            if size is None:
+                raise ValueError
+            self._size = size
+        elif initial is None:
+            self._head = None
+            self._size = 0
         elif type(initial) is list:
+            self._size = len(initial)
             self._head = None
             curr = None
             for v in initial:
@@ -62,10 +69,10 @@ class P_List(object):
         if self._head is None:
             raise ValueError("`%s` is illegal on empty list" %
                              self.tail.__name__)
-        return P_List(self._head._next)
+        return P_List(initial=self._head._next, size=self._size-1)
 
     def push(self, val):
-        return P_List(P_List.Node(val, self._head))
+        return P_List(initial=P_List.Node(val, self._head), size=self._size+1)
 
     def __str__(self):
         curr = self._head
@@ -84,11 +91,7 @@ class P_List(object):
         return P_List.Iterator(self._head)
 
     def __len__(self):
-        # FixMe: make this O(1)
-        size = 0
-        for _ in self:
-            size += 1
-        return size
+        return self._size
 
 ##################################################################################
 # P_Tree
@@ -139,7 +142,7 @@ class P_Tree(object):
                 else:
                     self._right._put_mutable(key, val)
 
-        def put(self, key, val):
+        def put(self, tree, key, val):
             hkey = hash(key)
             self_hkey = hash(self._key)
             out = P_Tree.Node(self._key, self._val)
@@ -153,14 +156,16 @@ class P_Tree(object):
             elif hkey < self_hkey:
                 if self._left is None:
                     out._left = P_Tree.Node(key, val)
+                    tree._size += 1
                 else:
-                    out._left = self._left.put(key, val)
+                    out._left = self._left.put(tree, key, val)
                 out._right = self._right
             else:
                 if self._right is None:
                     out._right = P_Tree.Node(key, val)
+                    tree._size += 1
                 else:
-                    out._right = self._right.put(key, val)
+                    out._right = self._right.put(tree, key, val)
                 out._left = self._left
             return out
 
@@ -199,6 +204,9 @@ class P_Tree(object):
         if init_mappings:
             for key, val in init_mappings.items():
                 self._put_mutable(key, val)
+            self._size = len(init_mappings)
+        else:
+            self._size = 0
 
     def __str__(self):
         return str(self._root)
@@ -213,8 +221,10 @@ class P_Tree(object):
         out = P_Tree()
         if self._root is None:
             out._root = P_Tree.Node(key, val)
+            out._size = 1
         else:
-            out._root = self._root.put(key, val)
+            out._size = self._size
+            out._root = self._root.put(self, key, val)
         return out
 
     def get(self, key):
@@ -239,23 +249,19 @@ class P_Tree(object):
     def keys(self):
         ordered_keys = []
         if self._root is None:
-            return P_List(ordered_keys)
+            return P_List(initial=ordered_keys)
         self._root.ordered_keys(ordered_keys)
-        return P_List(ordered_keys)
+        return P_List(initial=ordered_keys)
 
     def items(self):
         ordered_items = []
         if self._root is None:
-            return P_List(ordered_items)
+            return P_List(initial=ordered_items)
         self._root.ordered_items(ordered_items)
-        return P_List(ordered_items)
+        return P_List(initial=ordered_items)
 
     def __len__(self):
-        # FixMe: make this O(1)
-        size = 0
-        for _ in self:
-            size += 1
-        return size
+        return self._size
 
 
 # FixMe: add to test file
