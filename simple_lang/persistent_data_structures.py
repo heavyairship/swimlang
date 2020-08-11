@@ -8,7 +8,6 @@ import pdb
 
 
 class P_List(object):
-    # FixMe: add iterator
     # FixMe: add [] operator
     # FixMe: add in operator
     # FixMe: test
