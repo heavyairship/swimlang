@@ -25,6 +25,9 @@ check: clean uninstall install
 	echo "\nrunning call_test.sl" && simpl examples/call_test.sl --verbose && \
 	echo "\nrunning list_example.sl" && simpl examples/list_example.sl --verbose && \
 	echo "\nrunning maps.sl" && simpl examples/maps.sl --verbose && \
+	echo "\nrunning fizz_buzz.sl" && simpl examples/fizz_buzz.sl --verbose && \
+	echo "\nrunning map_reduce.sl" && simpl examples/map_reduce.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/bst.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
