@@ -9,19 +9,29 @@
 (print m3);
 (print m4);
 (func f m:
-    (get m 0)
+  (get m 0)
 );
 (call f m4);
 (func printmap m:
-    (mut keylist (keys m));
-    (mut k nil);
-    (while keylist (
-        (set k (head keylist));
-        (print k);
-        (print (get m k));
-        (set keylist (tail keylist));
-    ));
+  (mut keylist keys m);
+  (mut k nil);
+  (whilekeylist
+    (set k (head keylist));
+    (print k);
+    (print (get m k));
+    (set keylist (tail keylist))
+  )
 );
 (call printmap m4);
-
-(if {4:4 2:2 1:1 3:3 6:6 5:5 7:7} 0 1)
+(if {
+  1:1
+  2:2
+  3:3
+  4:4
+  5:5
+  6:6
+  7:7
+}
+  0
+  1
+)
