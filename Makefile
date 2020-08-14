@@ -15,7 +15,21 @@ uninstall:
 	rm /usr/local/bin/simpl
 	rm /usr/local/bin/simplfmt
 
+lint:
+	simplfmt examples/log_2.sl && \
+	simplfmt examples/call_test.sl && \
+	simplfmt examples/factorial.sl && \
+	simplfmt examples/factorial_rec.sl && \
+	simplfmt examples/higher_order.sl && \
+	simplfmt examples/list_example.sl && \
+	simplfmt examples/test.sl && \
+	simplfmt examples/bst.sl && \
+	simplfmt examples/maps.sl && \
+	simplfmt examples/map_reduce.sl && \
+	simplfmt examples/fizz_buzz.sl
+
 check: clean uninstall install
+	$(MAKE) lint
 	(echo "\nrunning test.py" && $(PYTHON) tests/test.py && \
 	echo "\nrunning test.sl" && simpl examples/test.sl --verbose && \
 	echo "\nrunning factorial.sl" && simpl examples/factorial.sl --verbose && \

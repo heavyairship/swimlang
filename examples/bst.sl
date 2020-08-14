@@ -118,31 +118,31 @@
 (call print_bst bst);
 (print "****");
 (set bst (call insert_bst bst {
-  "val":"hi"
+  "val":"hi",
   "key":3
 }));
 (call print_bst bst);
 (print "****");
 (set bst (call insert_bst bst {
-  "val":"yo"
+  "val":"yo",
   "key":1
 }));
 (call print_bst bst);
 (print "****");
 (set bst (call insert_bst bst {
-  "val":"sup"
+  "val":"sup",
   "key":5
 }));
 (call print_bst bst);
 (print "****");
 (set bst (call insert_bst bst {
-  "val":"sup"
+  "val":"sup",
   "key":5
 }));
 (call print_bst bst);
 (print "****");
 (set bst (call insert_bst bst {
-  "val":"sup"
+  "val":"sup",
   "key":5
 }));
 (call print_bst bst);

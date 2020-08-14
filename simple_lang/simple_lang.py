@@ -37,12 +37,16 @@
 # | {M}
 # | nil
 #
-# M -> (mapping)
+# M ->
 # | ε
 # | M2
 #
-# M2 -> (mapping helper)
-# | E:E M
+# M2 ->
+# | E:E M3
+#
+# M3 ->
+# | ε
+# | , M2
 #
 # P -> (param list)
 # | ε
@@ -101,7 +105,6 @@
 
 import enum
 import json
-import copy
 import pdb
 from simple_lang.persistent_data_structures import *
 
@@ -174,6 +177,7 @@ class TokenType(enum.Enum):
     LEFT_BRACE = "{"
     RIGHT_BRACE = "}"
     COLON = ":"
+    COMMA = ","
     IF = "if"
     FUNC = "func"
     CALL = "call"
@@ -376,6 +380,8 @@ class Tokenizer(object):
                 self.emit(TokenType.RIGHT_BRACE)
             elif self.match(TokenType.COLON.value):
                 self.emit(TokenType.COLON)
+            elif self.match(TokenType.COMMA.value):
+                self.emit(TokenType.COMMA)
             elif self.match(TokenType.NOT.value):
                 self.emit(TokenType.NOT)
             elif self.match(TokenType.AND.value):
@@ -599,9 +605,18 @@ class Parser(object):
         k = self.E()
         self.match(TokenType.COLON)
         v = self.E()
-        m = self.M()
-        m[k] = v
-        return m
+        m3 = self.M3()
+        m3[k] = v
+        return m3
+
+    def M3(self):
+        l = self.lookahead()
+        if l == TokenType.COMMA:
+            self.match(TokenType.COMMA)
+            m2 = self.M2()
+            return m2
+        else:
+            return {}
 
     def P(self):
         l = self.lookahead()
@@ -1444,7 +1459,7 @@ class Printer(Visitor):
     def visit_not(self, node):
         if not type(node) is Not:
             raise TypeError
-        return '%s%s' % (TokenType.NOT.value, self(node.arg))
+        return TokenType.LEFT_PAREN.value + TokenType.NOT.value + self(node.arg) + TokenType.RIGHT_PAREN.value
 
     def visit_str(self, node):
         if not type(node) is Str:
@@ -1459,7 +1474,7 @@ class Printer(Visitor):
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.LEFT_PAREN.value + TokenType.WHILE.value + cond +
+        return (TokenType.LEFT_PAREN.value + TokenType.WHILE.value + " " + cond +
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
@@ -1521,7 +1536,7 @@ class Printer(Visitor):
             return TokenType.LEFT_BRACE.value + TokenType.RIGHT_BRACE.value
         indent = self.indent
         self.indent = indent + "  "
-        mappings = ("\n" + self.indent).join(
+        mappings = (",\n" + self.indent).join(
             [("%s%s%s" % (self(k), TokenType.COLON.value, self(node.mappings[k]))) for k in node.mappings])
         self.indent = indent
         return TokenType.LEFT_BRACE.value + "\n" + self.indent + "  " + mappings + "\n" + self.indent + TokenType.RIGHT_BRACE.value
@@ -1541,7 +1556,7 @@ class Printer(Visitor):
     def visit_keys(self, node):
         if not type(node) is Keys:
             raise TypeError
-        return TokenType.KEYS.value + " " + self(node.m)
+        return (TokenType.LEFT_PAREN.value + TokenType.KEYS.value + " " + self(node.m) + TokenType.RIGHT_PAREN.value)
 
     def visit_list(self, node):
         if not type(node) is List:

@@ -19,7 +19,7 @@
       False
     )
   );
-  (let ks keys m);
+  (let ks (keys m));
   (call helper ks)
 );
 (func reduce l:
