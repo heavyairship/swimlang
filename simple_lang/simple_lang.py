@@ -37,22 +37,22 @@
 # | {M}
 # | nil
 #
-# M ->
+# M -> (mapping)
 # | ε
 # | M2
 #
-# M2 ->
+# M2 -> (mapping helper)
 # | E:E M3
 #
-# M3 ->
+# M3 -> (mapping helper)
 # | ε
 # | , M2
 #
-# P -> (param list)
+# P -> (parameter list)
 # | ε
 # | P2
 #
-# P2 -> (param list helper)
+# P2 -> (parameter list helper)
 # | v P
 #
 # L -> (expression list)
