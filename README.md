@@ -9,18 +9,18 @@ Simple functional programming language interpreter for fun! Supports (higher ord
         (if l
             (let h (head l));
             (let t (tail l));
-            (call helper t (push h a))
+            (helper t (push h a))
             a
         )
     );
-    (call helper l [])
+    (helper l [])
 );
 
 (fun map f l:
     (if l
         (let h (head l));
         (let t (tail l));
-        (push (call f h) (call map f t))
+        (push (f h) (map f t))
         []
     )
 );
@@ -30,7 +30,7 @@ Simple functional programming language interpreter for fun! Supports (higher ord
 );
 
 (let l [1 2 3 4]);
-(call reverse (call map timestwo l))
+(reverse (map timestwo l))
 ```
 
 The above code evaluates to the list `[8 6 4 2]`.
