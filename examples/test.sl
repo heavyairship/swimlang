@@ -5,9 +5,9 @@
 (func foo y:
   (set x 2);
   (print (+ y x));
-  (call bar)
+  (bar)
 );
-(call foo x);
+(foo x);
 (let a "hi ");
 (let b "there!");
 (+ a b)

@@ -12,11 +12,11 @@
 (mut o "");
 (while (<= i 100)
   (set o "");
-  (if (!(call mod i 3))
+  (if (!(mod i 3))
     (set o "fizz")
     0
   );
-  (if (!(call mod i 5))
+  (if (!(mod i 5))
     (set o (+ o "buzz"))
     0
   );
@@ -31,11 +31,11 @@
 (print "fizzbuzz recursive");
 (print "******************");
 (func fizzbuzz n:
-  (let o (if (&& (!(call mod n 3)) (!(call mod n 5)))
+  (let o (if (&& (!(mod n 3)) (!(mod n 5)))
     "fizzbuzz"
-    (if (!(call mod n 3))
+    (if (!(mod n 3))
       "fizz"
-      (if (!(call mod n 5))
+      (if (!(mod n 5))
         "buzz"
         n
       )
@@ -44,8 +44,8 @@
   (print o);
   (if (== n 100)
     0
-    (call fizzbuzz (+ n 1))
+    (fizzbuzz (+ n 1))
   )
 );
-(call fizzbuzz 1);
+(fizzbuzz 1);
 0

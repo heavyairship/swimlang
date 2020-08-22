@@ -11,7 +11,7 @@
 (func f m:
   (get m 0)
 );
-(call f m4);
+(f m4);
 (func printmap m:
   (mut keylist (keys m));
   (mut k nil);
@@ -22,7 +22,7 @@
     (set keylist (tail keylist))
   )
 );
-(call printmap m4);
+(printmap m4);
 (if {
   1:1
   2:2

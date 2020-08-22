@@ -3,7 +3,7 @@
   (if f
     (let h (head f));
     (let t (tail f));
-    (push [h 1] (call map t))
+    (push [h 1] (map t))
     []
   )
 );
@@ -14,22 +14,22 @@
       (let t (tail l));
       (if (== h k)
         True
-        (call helper t)
+        (helper t)
       )
       False
     )
   );
   (let ks (keys m));
-  (call helper ks)
+  (helper ks)
 );
 (func reduce l:
   (if l
     (let t (tail l));
-    (let m (call reduce t));
+    (let m (reduce t));
     (let e (head l));
     (let k (head e));
     (let v (head (tail e)));
-    (let currv (if (call in m k)
+    (let currv (if (in m k)
       (get m k)
       0
     ));
@@ -37,5 +37,5 @@
     {}
   )
 );
-(let l (call map f));
-(let o (call reduce l))
+(let l (map f));
+(let o (reduce l))

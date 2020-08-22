@@ -1,17 +1,17 @@
 (func new_bst_ entry left right:
   (func insert new_entry:
     (if (== entry nil)
-      (call new_bst_ new_entry nil nil)
+      (new_bst_ new_entry nil nil)
       (let nk (get new_entry "key"));
       (let k (get entry "key"));
       (if (< nk k)
         (if (== left nil)
-          (call new_bst_ entry (call new_bst_ new_entry nil nil) right)
-          (call new_bst_ entry (call (call left "insert") new_entry) right)
+          (new_bst_ entry (new_bst_ new_entry nil nil) right)
+          (new_bst_ entry ((left "insert") new_entry) right)
         )
         (if (== right nil)
-          (call new_bst_ entry left (call new_bst_ new_entry nil nil))
-          (call new_bst_ entry left (call (call right "insert") new_entry))
+          (new_bst_ entry left (new_bst_ new_entry nil nil))
+          (new_bst_ entry left ((right "insert") new_entry))
         )
       )
     )
@@ -25,11 +25,11 @@
         (if (< sk k)
           (if (== left nil)
             False
-            (call (call left "contains") sk)
+            ((left "contains") sk)
           )
           (if (== right nil)
             False
-            (call (call right "contains") sk)
+            ((right "contains") sk)
           )
         )
       )
@@ -44,11 +44,11 @@
         (if (< sk k)
           (if (== left nil)
             nil
-            (call (call left "search") sk)
+            ((left "search") sk)
           )
           (if (== right nil)
             nil
-            (call (call right "search") sk)
+            ((right "search") sk)
           )
         )
       )
@@ -56,12 +56,12 @@
   );
   (func print_bst:
     (if (!= left nil)
-      (call (call left "print"))
+      ((left "print"))
       nil
     );
     (print entry);
     (if (!= right nil)
-      (call (call right "print"))
+      ((right "print"))
       nil
     )
   );
@@ -91,65 +91,65 @@
   )
 );
 (func new_bst:
-  (call new_bst_ nil nil nil)
+  (new_bst_ nil nil nil)
 );
 (func entry_bst bst:
-  (call bst "entry")
+  (bst "entry")
 );
 (func left_bst bst:
-  (call bst "left")
+  (bst "left")
 );
 (func right_bst bst:
-  (call bst "right")
+  (bst "right")
 );
 (func insert_bst bst new_entry:
-  (call (call bst "insert") new_entry)
+  ((bst "insert") new_entry)
 );
 (func contains_bst bst search_key:
-  (call (call bst "contains") search_key)
+  ((bst "contains") search_key)
 );
 (func search_bst bst search_key:
-  (call (call bst "search") search_key)
+  ((bst "search") search_key)
 );
 (func print_bst bst:
-  (call (call bst "print"))
+  ((bst "print"))
 );
-(mut bst (call new_bst));
-(call print_bst bst);
+(mut bst (new_bst));
+(print_bst bst);
 (print "****");
-(set bst (call insert_bst bst {
-  "key":3
+(set bst (insert_bst bst {
   "val":"hi"
+  "key":3
 }));
-(call print_bst bst);
+(print_bst bst);
 (print "****");
-(set bst (call insert_bst bst {
-  "key":1
+(set bst (insert_bst bst {
   "val":"yo"
+  "key":1
 }));
-(call print_bst bst);
+(print_bst bst);
 (print "****");
-(set bst (call insert_bst bst {
-  "key":5
+(set bst (insert_bst bst {
   "val":"sup"
-}));
-(call print_bst bst);
-(print "****");
-(set bst (call insert_bst bst {
   "key":5
-  "val":"sup"
 }));
-(call print_bst bst);
+(print_bst bst);
 (print "****");
-(set bst (call insert_bst bst {
+(set bst (insert_bst bst {
+  "val":"sup"
   "key":5
-  "val":"sup"
 }));
-(call print_bst bst);
+(print_bst bst);
 (print "****");
-(print (call contains_bst bst 3));
-(print (call contains_bst bst 10));
-(print (call search_bst bst 1));
-(print (call search_bst bst 3));
-(print (call search_bst bst 5));
+(set bst (insert_bst bst {
+  "val":"sup"
+  "key":5
+}));
+(print_bst bst);
+(print "****");
+(print (contains_bst bst 3));
+(print (contains_bst bst 10));
+(print (search_bst bst 1));
+(print (search_bst bst 3));
+(print (search_bst bst 5));
 "done!"

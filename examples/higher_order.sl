@@ -5,6 +5,6 @@
   sum
 );
 (func apply f x y:
-  (call f x y)
+  (f x y)
 );
-(call apply (call sumfactory) 1 2)
+(apply (sumfactory) 1 2)
