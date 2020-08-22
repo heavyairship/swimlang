@@ -10,20 +10,17 @@
 #
 # E -> (expression)
 # | T
-# | (E1
-# | E;E2
+# | (func v P: E)
+# | (E L)
+# | (let v E)
+# | (mut v E)
+# | (set v E)
+# | (UOP E)
+# | (BOP E E)
+# | (TOP E E E)
+# | E;E1
 #
 # E1 -> (expression helper)
-# | func v P: E)
-# | E L)
-# | let v E)
-# | mut v E)
-# | set v E)
-# | UOP E)
-# | BOP E E)
-# | TOP E E E)
-#
-# E2 -> (expression helper)
 # | ε
 # | E
 #
@@ -462,70 +459,67 @@ class Parser(object):
             e = self.T()
         elif l == TokenType.LEFT_PAREN:
             self.match(TokenType.LEFT_PAREN)
-            e = self.E1()
+            l2 = self.lookahead()
+            if l2 == TokenType.FUNC:
+                self.match(TokenType.FUNC)
+                v = self.v()
+                p = self.P()
+                self.match(TokenType.COLON)
+                e = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = Func(v.val, p, e, None)
+            elif l2 == TokenType.LET:
+                self.match(TokenType.LET)
+                v = self.v()
+                e = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = Let(v, e)
+            elif l2 == TokenType.MUT:
+                self.match(TokenType.MUT)
+                v = self.v()
+                e = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = Mut(v, e)
+            elif l2 == TokenType.SET:
+                self.match(TokenType.SET)
+                v = self.v()
+                e = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = Set(v, e)
+            elif l2 in self.first_UOP:
+                uop = self.UOP()
+                e = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = uop(e)
+            elif l2 in self.first_BOP:
+                bop = self.BOP()
+                e = self.E()
+                e2 = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = bop(e, e2)
+            elif l2 in self.first_TOP:
+                top = self.TOP()
+                e = self.E()
+                e2 = self.E()
+                e3 = self.E()
+                self.match(TokenType.RIGHT_PAREN)
+                e = top(e, e2, e3)
+            elif l2 in self.first_E:
+                e = self.E()
+                lst = self.L()
+                self.match(TokenType.RIGHT_PAREN)
+                e = Call(e, lst)
+            else:
+                raise ValueError
         else:
             raise ValueError
         matched_seq = (self.lookahead() == TokenType.SEQ)
         while self.lookahead() == TokenType.SEQ:
             self.match(TokenType.SEQ)
-        e2 = self.E2() if matched_seq else None
-        return e if e2 is None else Seq(e, e2)
+        e1 = self.E1() if matched_seq else None
+        return e if e1 is None else Seq(e, e1)
 
     def E1(self):
-        l = self.lookahead()
-        if l == TokenType.FUNC:
-            self.match(TokenType.FUNC)
-            v = self.v()
-            p = self.P()
-            self.match(TokenType.COLON)
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return Func(v.val, p, e, None)
-        elif l == TokenType.LET:
-            self.match(TokenType.LET)
-            v = self.v()
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return Let(v, e)
-        elif l == TokenType.MUT:
-            self.match(TokenType.MUT)
-            v = self.v()
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return Mut(v, e)
-        elif l == TokenType.SET:
-            self.match(TokenType.SET)
-            v = self.v()
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return Set(v, e)
-        elif l in self.first_UOP:
-            uop = self.UOP()
-            e = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return uop(e)
-        elif l in self.first_BOP:
-            bop = self.BOP()
-            e = self.E()
-            e2 = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return bop(e, e2)
-        elif l in self.first_TOP:
-            top = self.TOP()
-            e = self.E()
-            e2 = self.E()
-            e3 = self.E()
-            self.match(TokenType.RIGHT_PAREN)
-            return top(e, e2, e3)
-        elif l in self.first_E:
-            e = self.E()
-            l = self.L()
-            self.match(TokenType.RIGHT_PAREN)
-            return Call(e, l)
-        else:
-            raise ValueError
-
-    def E2(self):
         l = self.lookahead()
         if l in self.first_E:
             e = self.E()
@@ -546,9 +540,9 @@ class Parser(object):
             return v
         elif l == TokenType.LEFT_BRACKET:
             self.match(TokenType.LEFT_BRACKET)
-            l = self.L()
+            lst = self.L()
             self.match(TokenType.RIGHT_BRACKET)
-            return List(l)
+            return List(lst)
         elif l == TokenType.LEFT_BRACE:
             self.match(TokenType.LEFT_BRACE)
             m = self.M()
@@ -586,12 +580,12 @@ class Parser(object):
             return []
 
     def L(self):
-        la = self.lookahead()
-        if la in self.first_E:
+        l = self.lookahead()
+        if l in self.first_E:
             e = self.E()
-            l = self.L()
-            l.insert(0, e)
-            return l
+            lst = self.L()
+            lst.insert(0, e)
+            return lst
         else:
             return []
 
