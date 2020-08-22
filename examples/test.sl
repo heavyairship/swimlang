@@ -1,8 +1,8 @@
 (mut x 20);
-(func bar:
+(fun bar:
   0
 );
-(func foo y:
+(fun foo y:
   (set x 2);
   (print (+ y x));
   (bar)

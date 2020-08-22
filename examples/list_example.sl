@@ -1,4 +1,4 @@
-(func identity l:
+(fun identity l:
   (if l
     (let h (head l));
     (let t (tail l));
@@ -6,8 +6,8 @@
     []
   )
 );
-(func reverse l:
-  (func helper l a:
+(fun reverse l:
+  (fun helper l a:
     (if l
       (let h (head l));
       (let t (tail l));
@@ -17,7 +17,7 @@
   );
   (helper l [])
 );
-(func sum l a:
+(fun sum l a:
   (if l
     (let h (head l));
     (let t (tail l));
@@ -25,17 +25,17 @@
     0
   )
 );
-(func len l a:
+(fun len l a:
   (if l
     (let t (tail l));
     (+ 1 (len t 0))
     0
   )
 );
-(func ave l:
+(fun ave l:
   (/ (sum l 0) (len l 0))
 );
-(func map f l:
+(fun map f l:
   (if l
     (let h (head l));
     (let t (tail l));
@@ -43,7 +43,7 @@
     []
   )
 );
-(func filter f l:
+(fun filter f l:
   (if l
     (let h (head l));
     (let t (tail l));
@@ -55,10 +55,10 @@
     []
   )
 );
-(func timestwo n:
+(fun timestwo n:
   (* 2 n)
 );
-(func even n:
+(fun even n:
   (== n (* 2 (/ n 2)))
 );
 (let in [1 2 3 4]);

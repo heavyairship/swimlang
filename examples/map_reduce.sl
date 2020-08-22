@@ -1,5 +1,5 @@
 (let f ["x" "x" "x" "x" "a" "b" "c" "d" "e" "a" "b" "c"]);
-(func map f:
+(fun map f:
   (if f
     (let h (head f));
     (let t (tail f));
@@ -7,8 +7,8 @@
     []
   )
 );
-(func in m k:
-  (func helper l:
+(fun in m k:
+  (fun helper l:
     (if l
       (let h (head l));
       (let t (tail l));
@@ -22,7 +22,7 @@
   (let ks (keys m));
   (helper ks)
 );
-(func reduce l:
+(fun reduce l:
   (if l
     (let t (tail l));
     (let m (reduce t));

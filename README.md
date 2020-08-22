@@ -4,8 +4,8 @@ Simple functional programming language interpreter for fun! Supports (higher ord
 ### Here's an example
 
 ```
-(func reverse l:
-    (func helper l a:
+(fun reverse l:
+    (fun helper l a:
         (if l
             (let h (head l));
             (let t (tail l));
@@ -16,7 +16,7 @@ Simple functional programming language interpreter for fun! Supports (higher ord
     (call helper l [])
 );
 
-(func map f l:
+(fun map f l:
     (if l
         (let h (head l));
         (let t (tail l));
@@ -25,7 +25,7 @@ Simple functional programming language interpreter for fun! Supports (higher ord
     )
 );
 
-(func timestwo n: 
+(fun timestwo n: 
     (* 2 n)
 );
 

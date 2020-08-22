@@ -1,4 +1,4 @@
-(func mod m n:
+(fun mod m n:
   (mut o m);
   (while (>= o n)
     (set o (- o n))
@@ -30,7 +30,7 @@
 (print "******************");
 (print "fizzbuzz recursive");
 (print "******************");
-(func fizzbuzz n:
+(fun fizzbuzz n:
   (let o (if (&& (!(mod n 3)) (!(mod n 5)))
     "fizzbuzz"
     (if (!(mod n 3))

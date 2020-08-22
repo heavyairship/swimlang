@@ -10,7 +10,7 @@
 #
 # E -> (expression)
 # | T
-# | (func v P: E)
+# | (fun v P: E)
 # | (E L)
 # | (let v E)
 # | (mut v E)
@@ -161,7 +161,7 @@ class TokenType(enum.Enum):
     RIGHT_BRACE = "}"
     COLON = ":"
     IF = "if"
-    FUNC = "func"
+    FUN = "fun"
     LET = "let"
     MUT = "mut"
     SET = "set"
@@ -210,7 +210,7 @@ class Token(object):
 KEYWORDS = [
     TokenType.WHILE.value,
     TokenType.IF.value,
-    TokenType.FUNC.value,
+    TokenType.FUN.value,
     TokenType.LET.value,
     TokenType.MUT.value,
     TokenType.SET.value,
@@ -460,14 +460,14 @@ class Parser(object):
         elif l == TokenType.LEFT_PAREN:
             self.match(TokenType.LEFT_PAREN)
             l2 = self.lookahead()
-            if l2 == TokenType.FUNC:
-                self.match(TokenType.FUNC)
+            if l2 == TokenType.FUN:
+                self.match(TokenType.FUN)
                 v = self.v()
                 p = self.P()
                 self.match(TokenType.COLON)
                 e = self.E()
                 self.match(TokenType.RIGHT_PAREN)
-                e = Func(v.val, p, e, None)
+                e = Fun(v.val, p, e, None)
             elif l2 == TokenType.LET:
                 self.match(TokenType.LET)
                 v = self.v()
@@ -1005,7 +1005,7 @@ class Seq(BinOp):
         return visitor.visit_seq(self)
 
 
-class Func(Node):
+class Fun(Node):
     def __init__(self, name, params, body, lexical_scope):
         if not (type(name) is str or name is None):
             raise TypeError
@@ -1018,7 +1018,7 @@ class Func(Node):
                 raise ValueError
         if not issubclass(type(body), Node):
             raise TypeError
-        if not (type(lexical_scope) is Func or lexical_scope is None):
+        if not (type(lexical_scope) is Fun or lexical_scope is None):
             raise TypeError
         self.name = name
         self.params = params
@@ -1027,19 +1027,19 @@ class Func(Node):
         self.lexical_scope = lexical_scope
 
     def accept(self, visitor):
-        return visitor.visit_func(self)
+        return visitor.visit_fun(self)
 
 
 class Call(Node):
-    def __init__(self, func, args):
-        if not issubclass(type(func), Node):
+    def __init__(self, fun, args):
+        if not issubclass(type(fun), Node):
             raise TypeError
         if not type(args) is list:
             raise TypeError
         for a in args:
             if not issubclass(type(a), Node):
                 raise TypeError
-        self.func = func
+        self.fun = fun
         self.args = args
 
     def accept(self, visitor):
@@ -1265,7 +1265,7 @@ class Visitor(object):
     def visit_seq(self, node):
         raise NotImplementedError
 
-    def visit_func(self, node):
+    def visit_fun(self, node):
         raise NotImplementedError
 
     def visit_call(self, node):
@@ -1442,21 +1442,21 @@ class Printer(Visitor):
             raise TypeError
         return "%s%s\n%s%s" % (self(node.first), TokenType.SEQ.value, self.indent, self(node.second))
 
-    def visit_func(self, node):
-        if not type(node) is Func:
+    def visit_fun(self, node):
+        if not type(node) is Fun:
             raise TypeError
         if node.name:
-            func_name = node.name
+            fun_name = node.name
         else:
             # FixMe: this prob should be removed b/c List/Map __str__ functions should not use Printer
             # Hack to look up names for 'anonymous' functions
-            func_name = [n for (n, b) in node.env.items() if b.val == node][0]
+            fun_name = [n for (n, b) in node.env.items() if b.val == node][0]
         params = " " + " ".join(node.params) if len(node.params) > 0 else ""
         indent = self.indent
         self.indent = indent + "  "
         body = self(node.body)
         self.indent = indent
-        return (TokenType.LEFT_PAREN.value + TokenType.FUNC.value + ' ' + func_name + params + TokenType.COLON.value +
+        return (TokenType.LEFT_PAREN.value + TokenType.FUN.value + ' ' + fun_name + params + TokenType.COLON.value +
                 '\n' + indent + '  ' + body +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
@@ -1465,7 +1465,7 @@ class Printer(Visitor):
             raise TypeError
         args = " " + " ".join([self(a) for a in node.args]
                               ) if len(node.args) > 0 else ""
-        return (TokenType.LEFT_PAREN.value + self(node.func) + args +
+        return (TokenType.LEFT_PAREN.value + self(node.fun) + args +
                 TokenType.RIGHT_PAREN.value)
 
     def visit_map(self, node):
@@ -1564,12 +1564,12 @@ class Binding(object):
 
 
 class Frame(object):
-    def __init__(self, func, env):
-        if not (type(func) is Func or func is None):
+    def __init__(self, fun, env):
+        if not (type(fun) is Fun or fun is None):
             raise TypeError
         if not type(env) is dict:
             raise TypeError
-        self.func = func
+        self.fun = fun
         self.env = env
 
 
@@ -1744,12 +1744,12 @@ class Evaluator(Visitor):
         # scope. Note that the lexical scope can be different from the calling context, e.g.
         # when a nested function is returned and subsequently called outside of its lexical scope;
         # in this case, no propagation is necessary.
-        func = self.current_frame().func
+        fun = self.current_frame().fun
         idx = -2  # index for previous stack frame
-        while binding.scope == Scope.INHERITED and func and func.lexical_scope == self.stack[idx].func:
+        while binding.scope == Scope.INHERITED and fun and fun.lexical_scope == self.stack[idx].fun:
             binding = self.read(node.var.val, self.stack[idx])
             binding.val = val
-            func = func.lexical_scope
+            fun = fun.lexical_scope
             idx -= 1
         return val
 
@@ -1767,8 +1767,8 @@ class Evaluator(Visitor):
         self(node.first)
         return self(node.second)
 
-    def visit_func(self, node):
-        if not type(node) is Func:
+    def visit_fun(self, node):
+        if not type(node) is Fun:
             raise TypeError
 
         # Function is anonymous, i.e. a closure. Just return it.
@@ -1778,7 +1778,7 @@ class Evaluator(Visitor):
         # Function delcaration case.
         # Make an anonymous copy of the function which will be returned.
         # This is important to prevent re-declarations and to support closures.
-        out = Func(None, node.params, node.body, self.current_frame().func)
+        out = Fun(None, node.params, node.body, self.current_frame().fun)
         out.env = {}
         for name, binding in self.current_frame().env.items():
             out.env[name] = Binding(Scope.INHERITED, binding.decl, binding.val)
@@ -1789,35 +1789,35 @@ class Evaluator(Visitor):
     def visit_call(self, node):
         if not type(node) is Call:
             raise TypeError
-        func = self(node.func)
-        if not type(func) is Func:
+        fun = self(node.fun)
+        if not type(fun) is Fun:
             # Non-functions are callable in that they take no arguments and return themselves.
             if len(node.args) == 0:
-                return func
+                return fun
             # Non-functions cannot take arguments.
             raise TypeError
-        if len(func.params) < len(node.args):
+        if len(fun.params) < len(node.args):
             raise ValueError
-        if len(func.params) == len(node.args):
+        if len(fun.params) == len(node.args):
             # All params available - evaluate the function
             env = {}
-            for name, binding in func.env.items():
+            for name, binding in fun.env.items():
                 env[name] = Binding(binding.scope, binding.decl, binding.val)
             for i, a in enumerate(node.args):
-                name = func.params[i]
+                name = fun.params[i]
                 env[name] = Binding(Scope.PARAM, Decl.LET, self(a))
-            self.stack.append(Frame(func, env))
-            out = self(func.body)
+            self.stack.append(Frame(fun, env))
+            out = self(fun.body)
             self.stack.pop()
         else:
             # Not all params available - return a closure
-            params = [p for p in func.params[len(node.args):]]
-            out = Func(None, params, func.body, func.lexical_scope)
-            for name, binding in func.env.items():
+            params = [p for p in fun.params[len(node.args):]]
+            out = Fun(None, params, fun.body, fun.lexical_scope)
+            for name, binding in fun.env.items():
                 out.env[name] = Binding(
                     binding.scope, binding.decl, binding.val)
             for i, a in enumerate(node.args):
-                name = func.params[i]
+                name = fun.params[i]
                 out.env[name] = Binding(Scope.PARAM, Decl.LET, self(a))
         return out
 

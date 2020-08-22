@@ -1,5 +1,5 @@
-(func new_bst_ entry left right:
-  (func insert new_entry:
+(fun new_bst_ entry left right:
+  (fun insert new_entry:
     (if (== entry nil)
       (new_bst_ new_entry nil nil)
       (let nk (get new_entry "key"));
@@ -16,7 +16,7 @@
       )
     )
   );
-  (func contains sk:
+  (fun contains sk:
     (if (== entry nil)
       False
       (let k (get entry "key"));
@@ -35,7 +35,7 @@
       )
     )
   );
-  (func search sk:
+  (fun search sk:
     (if (== entry nil)
       nil
       (let k (get entry "key"));
@@ -54,7 +54,7 @@
       )
     )
   );
-  (func print_bst:
+  (fun print_bst:
     (if (!= left nil)
       ((left "print"))
       nil
@@ -65,7 +65,7 @@
       nil
     )
   );
-  (func op o:
+  (fun op o:
     (if (== o "entry")
       entry
       (if (== o "left")
@@ -90,28 +90,28 @@
     )
   )
 );
-(func new_bst:
+(fun new_bst:
   (new_bst_ nil nil nil)
 );
-(func entry_bst bst:
+(fun entry_bst bst:
   (bst "entry")
 );
-(func left_bst bst:
+(fun left_bst bst:
   (bst "left")
 );
-(func right_bst bst:
+(fun right_bst bst:
   (bst "right")
 );
-(func insert_bst bst new_entry:
+(fun insert_bst bst new_entry:
   ((bst "insert") new_entry)
 );
-(func contains_bst bst search_key:
+(fun contains_bst bst search_key:
   ((bst "contains") search_key)
 );
-(func search_bst bst search_key:
+(fun search_bst bst search_key:
   ((bst "search") search_key)
 );
-(func print_bst bst:
+(fun print_bst bst:
   ((bst "print"))
 );
 (mut bst (new_bst));
