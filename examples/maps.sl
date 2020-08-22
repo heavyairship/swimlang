@@ -14,7 +14,7 @@
 (f m4);
 (fun printmap m:
   (mut keylist (keys m));
-  (mut k nil);
+  (mut k Nil);
   (while keylist
     (set k (head keylist));
     (print k);

@@ -31,7 +31,7 @@
 # | v
 # | [L]
 # | {M}
-# | nil
+# | Nil
 #
 # M -> (mapping)
 # | ε
@@ -84,7 +84,7 @@
 # | "[\x00-\x7F]+"
 #
 # v -> (variable) # FixMe: var/id should be different
-# | [a-zA-Z]+[a-zA-Z0-9_]/{True, False}
+# | [a-zA-Z]+[a-zA-Z0-9_]*/{True, False}
 
 import enum
 import json
@@ -188,7 +188,7 @@ class TokenType(enum.Enum):
     PRINT = "print"
     TRUE = "True"
     FALSE = "False"
-    NIL = "nil"
+    NIL = "Nil"
     INT = enum.auto()
     VAR = enum.auto()
     STR = enum.auto()

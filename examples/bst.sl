@@ -1,33 +1,33 @@
 (fun new_bst_ entry left right:
   (fun insert new_entry:
-    (if (== entry nil)
-      (new_bst_ new_entry nil nil)
+    (if (== entry Nil)
+      (new_bst_ new_entry Nil Nil)
       (let nk (get new_entry "key"));
       (let k (get entry "key"));
       (if (< nk k)
-        (if (== left nil)
-          (new_bst_ entry (new_bst_ new_entry nil nil) right)
+        (if (== left Nil)
+          (new_bst_ entry (new_bst_ new_entry Nil Nil) right)
           (new_bst_ entry ((left "insert") new_entry) right)
         )
-        (if (== right nil)
-          (new_bst_ entry left (new_bst_ new_entry nil nil))
+        (if (== right Nil)
+          (new_bst_ entry left (new_bst_ new_entry Nil Nil))
           (new_bst_ entry left ((right "insert") new_entry))
         )
       )
     )
   );
   (fun contains sk:
-    (if (== entry nil)
+    (if (== entry Nil)
       False
       (let k (get entry "key"));
       (if (== sk k)
         True
         (if (< sk k)
-          (if (== left nil)
+          (if (== left Nil)
             False
             ((left "contains") sk)
           )
-          (if (== right nil)
+          (if (== right Nil)
             False
             ((right "contains") sk)
           )
@@ -36,18 +36,18 @@
     )
   );
   (fun search sk:
-    (if (== entry nil)
-      nil
+    (if (== entry Nil)
+      Nil
       (let k (get entry "key"));
       (if (== sk k)
         (get entry "val")
         (if (< sk k)
-          (if (== left nil)
-            nil
+          (if (== left Nil)
+            Nil
             ((left "search") sk)
           )
-          (if (== right nil)
-            nil
+          (if (== right Nil)
+            Nil
             ((right "search") sk)
           )
         )
@@ -55,14 +55,14 @@
     )
   );
   (fun print_bst:
-    (if (!= left nil)
+    (if (!= left Nil)
       ((left "print"))
-      nil
+      Nil
     );
     (print entry);
-    (if (!= right nil)
+    (if (!= right Nil)
       ((right "print"))
-      nil
+      Nil
     )
   );
   (fun op o:
@@ -91,7 +91,7 @@
   )
 );
 (fun new_bst:
-  (new_bst_ nil nil nil)
+  (new_bst_ Nil Nil Nil)
 );
 (fun entry_bst bst:
   (bst "entry")
@@ -118,32 +118,32 @@
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"hi"
   "key":3
+  "val":"hi"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"yo"
   "key":1
+  "val":"yo"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
