@@ -15,7 +15,7 @@
 #
 # E1 -> (expression helper)
 # | func v P: E)
-# | call E L)
+# | call E L) # FixMe: figure out a way to remove the need for the call token to invoke nullary functions; also perhaps add a thunk keyword for NOT invoking nullary functions.
 # | E L)
 # | let v E)
 # | mut v E)
