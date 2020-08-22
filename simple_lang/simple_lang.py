@@ -14,15 +14,15 @@
 # | E;E2
 #
 # E1 -> (expression helper)
-# | func v P: E) #
+# | func v P: E)
 # | call E L)
+# | E L)
 # | let v E)
 # | mut v E)
 # | set v E)
 # | UOP E)
 # | BOP E E)
 # | TOP E E E)
-# | E)
 #
 # E2 -> (expression helper)
 # | ε
@@ -543,8 +543,9 @@ class Parser(object):
             return top(e, e2, e3)
         elif l in self.first_E:
             e = self.E()
+            l = self.L()
             self.match(TokenType.RIGHT_PAREN)
-            return e
+            return Call(e, l) if len(l) > 0 else e
         else:
             raise ValueError
 
@@ -1816,7 +1817,7 @@ class Evaluator(Visitor):
         if not type(node) is Func:
             raise TypeError
 
-        # Function is anonymous, i.e. already a closure. Just return it.
+        # Function is anonymous, i.e. a closure. Just return it.
         if node.name is None:
             return node
 
