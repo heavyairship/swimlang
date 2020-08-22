@@ -1797,10 +1797,11 @@ class Evaluator(Visitor):
             raise TypeError
         func = self(node.func)
         if not type(func) is Func:
-            if len(node.args) > 0:
-                raise TypeError
-            else:
+            # Non-functions are callable in that they take no arguments and return themselves.
+            if len(node.args) == 0:
                 return func
+            # Non-functions cannot take arguments.
+            raise TypeError
         if len(func.params) < len(node.args):
             raise ValueError
         if len(func.params) == len(node.args):
