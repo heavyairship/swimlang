@@ -42,11 +42,7 @@
 # | M2
 #
 # M2 -> (mapping helper)
-# | E:E M3
-#
-# M3 -> (mapping helper)
-# | ε
-# | , M2
+# | E:E M
 #
 # P -> (parameter list)
 # | ε
@@ -177,7 +173,6 @@ class TokenType(enum.Enum):
     LEFT_BRACE = "{"
     RIGHT_BRACE = "}"
     COLON = ":"
-    COMMA = ","
     IF = "if"
     FUNC = "func"
     CALL = "call"
@@ -380,8 +375,6 @@ class Tokenizer(object):
                 self.emit(TokenType.RIGHT_BRACE)
             elif self.match(TokenType.COLON.value):
                 self.emit(TokenType.COLON)
-            elif self.match(TokenType.COMMA.value):
-                self.emit(TokenType.COMMA)
             elif self.match(TokenType.NOT.value):
                 self.emit(TokenType.NOT)
             elif self.match(TokenType.AND.value):
@@ -605,18 +598,9 @@ class Parser(object):
         k = self.E()
         self.match(TokenType.COLON)
         v = self.E()
-        m3 = self.M3()
-        m3[k] = v
-        return m3
-
-    def M3(self):
-        l = self.lookahead()
-        if l == TokenType.COMMA:
-            self.match(TokenType.COMMA)
-            m2 = self.M2()
-            return m2
-        else:
-            return {}
+        m = self.M()
+        m[k] = v
+        return m
 
     def P(self):
         l = self.lookahead()
@@ -1536,7 +1520,7 @@ class Printer(Visitor):
             return TokenType.LEFT_BRACE.value + TokenType.RIGHT_BRACE.value
         indent = self.indent
         self.indent = indent + "  "
-        mappings = (",\n" + self.indent).join(
+        mappings = ("\n" + self.indent).join(
             [("%s%s%s" % (self(k), TokenType.COLON.value, self(node.mappings[k]))) for k in node.mappings])
         self.indent = indent
         return TokenType.LEFT_BRACE.value + "\n" + self.indent + "  " + mappings + "\n" + self.indent + TokenType.RIGHT_BRACE.value
