@@ -39,23 +39,14 @@
 #
 # M -> (mapping)
 # | ε
-# | M2
-#
-# M2 -> (mapping helper)
 # | E:E M
 #
 # P -> (parameter list)
 # | ε
-# | P2
-#
-# P2 -> (parameter list helper)
 # | v P
 #
 # L -> (expression list)
 # | ε
-# | L2
-#
-# L2 -> (expression list helper)
 # | E L
 #
 # UOP -> (unary operator)
@@ -447,12 +438,6 @@ class Parser(object):
 
     first_E = frozenset([TokenType.LEFT_PAREN]).union(first_T)
 
-    first_M2 = frozenset([]).union(first_E)
-
-    first_P2 = frozenset([TokenType.VAR])
-
-    first_L2 = frozenset([]).union(first_E)
-
     def __init__(self, tokens):
         self.tokens = tokens
         self.idx = 0
@@ -589,29 +574,17 @@ class Parser(object):
 
     def M(self):
         l = self.lookahead()
-        if l in self.first_M2:
-            m2 = self.M2()
-            return m2
+        if l in self.first_E:
+            k = self.E()
+            self.match(TokenType.COLON)
+            v = self.E()
+            m = self.M()
+            m[k] = v
+            return m
         else:
             return {}
 
-    def M2(self):
-        k = self.E()
-        self.match(TokenType.COLON)
-        v = self.E()
-        m = self.M()
-        m[k] = v
-        return m
-
     def P(self):
-        l = self.lookahead()
-        if l in self.first_P2:
-            p2 = self.P2()
-            return p2
-        else:
-            return []
-
-    def P2(self):
         l = self.lookahead()
         if l == TokenType.VAR:
             v = self.v().val
@@ -619,21 +592,17 @@ class Parser(object):
             p.insert(0, v)
             return p
         else:
-            raise ValueError
-
-    def L(self):
-        l = self.lookahead()
-        if l in self.first_L2:
-            l2 = self.L2()
-            return l2
-        else:
             return []
 
-    def L2(self):
-        e = self.E()
-        l = self.L()
-        l.insert(0, e)
-        return l
+    def L(self):
+        la = self.lookahead()
+        if la in self.first_E:
+            e = self.E()
+            l = self.L()
+            l.insert(0, e)
+            return l
+        else:
+            return []
 
     def UOP(self):
         l = self.lookahead()
