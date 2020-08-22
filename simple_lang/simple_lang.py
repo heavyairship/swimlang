@@ -15,7 +15,6 @@
 #
 # E1 -> (expression helper)
 # | func v P: E)
-# | call E L) # FixMe: figure out a way to remove the need for the call token to invoke nullary functions; also perhaps add a thunk keyword for NOT invoking nullary functions.
 # | E L)
 # | let v E)
 # | mut v E)
@@ -166,7 +165,6 @@ class TokenType(enum.Enum):
     COLON = ":"
     IF = "if"
     FUNC = "func"
-    CALL = "call"
     LET = "let"
     MUT = "mut"
     SET = "set"
@@ -216,7 +214,6 @@ KEYWORDS = [
     TokenType.WHILE.value,
     TokenType.IF.value,
     TokenType.FUNC.value,
-    TokenType.CALL.value,
     TokenType.LET.value,
     TokenType.MUT.value,
     TokenType.SET.value,
@@ -484,12 +481,6 @@ class Parser(object):
             e = self.E()
             self.match(TokenType.RIGHT_PAREN)
             return Func(v.val, p, e, None)
-        elif l == TokenType.CALL:
-            self.match(TokenType.CALL)
-            e = self.E()
-            l = self.L()
-            self.match(TokenType.RIGHT_PAREN)
-            return Call(e, l)
         elif l == TokenType.LET:
             self.match(TokenType.LET)
             v = self.v()
@@ -530,7 +521,7 @@ class Parser(object):
             e = self.E()
             l = self.L()
             self.match(TokenType.RIGHT_PAREN)
-            return Call(e, l) if len(l) > 0 else e
+            return Call(e, l)
         else:
             raise ValueError
 
@@ -1480,7 +1471,7 @@ class Printer(Visitor):
             raise TypeError
         args = " " + " ".join([self(a) for a in node.args]
                               ) if len(node.args) > 0 else ""
-        return (TokenType.LEFT_PAREN.value + TokenType.CALL.value + ' ' + self(node.func) + args +
+        return (TokenType.LEFT_PAREN.value + self(node.func) + args +
                 TokenType.RIGHT_PAREN.value)
 
     def visit_map(self, node):
@@ -1806,7 +1797,10 @@ class Evaluator(Visitor):
             raise TypeError
         func = self(node.func)
         if not type(func) is Func:
-            raise TypeError
+            if len(node.args) > 0:
+                raise TypeError
+            else:
+                return func
         if len(func.params) < len(node.args):
             raise ValueError
         if len(func.params) == len(node.args):
