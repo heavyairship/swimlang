@@ -43,9 +43,8 @@
   ));
   (print o);
   (if (== n 100)
-    0
+    Nil
     (fizzbuzz (+ n 1))
   )
 );
-(fizzbuzz 1);
-0
+(fizzbuzz 1)

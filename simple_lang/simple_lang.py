@@ -1,6 +1,7 @@
 # SimpleLang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
+# FixMe: add tail recursion
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
 #
