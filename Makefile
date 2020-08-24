@@ -26,7 +26,8 @@ lint:
 	simplfmt examples/bst.sl && \
 	simplfmt examples/maps.sl && \
 	simplfmt examples/map_reduce.sl && \
-	simplfmt examples/fizz_buzz.sl
+	simplfmt examples/fizz_buzz.sl && \
+	simplfmt examples/times_table.sl
 
 check: clean uninstall install
 	$(MAKE) lint
@@ -42,6 +43,7 @@ check: clean uninstall install
 	echo "\nrunning fizz_buzz.sl" && simpl examples/fizz_buzz.sl --verbose && \
 	echo "\nrunning map_reduce.sl" && simpl examples/map_reduce.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/bst.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/times_table.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
