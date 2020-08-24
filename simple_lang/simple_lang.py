@@ -1798,6 +1798,7 @@ class Evaluator(Visitor):
             # Non-functions cannot take arguments.
             raise TypeError
         if len(fun.params) < len(node.args):
+            # Too many arguments supplied
             raise ValueError
         if len(fun.params) == len(node.args):
             # All params available - evaluate the function
