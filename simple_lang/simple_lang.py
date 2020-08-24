@@ -66,6 +66,7 @@
 # | -
 # | *
 # | /
+# | %
 # | while
 # | push
 # | get
@@ -179,6 +180,7 @@ class TokenType(enum.Enum):
     SUB = "-"
     MUL = "*"
     DIV = "/"
+    MOD = "%"
     SEQ = ";"
     HEAD = "head"
     TAIL = "tail"
@@ -383,6 +385,8 @@ class Tokenizer(object):
                 self.emit(TokenType.MUL)
             elif self.match(TokenType.DIV.value):
                 self.emit(TokenType.DIV)
+            elif self.match(TokenType.MOD.value):
+                self.emit(TokenType.MOD)
             elif self.match(TokenType.SEQ.value):
                 self.emit(TokenType.SEQ)
             elif self.match_keyword():
@@ -424,6 +428,7 @@ class Parser(object):
         TokenType.SUB,
         TokenType.MUL,
         TokenType.DIV,
+        TokenType.MOD,
         TokenType.SEQ,
         TokenType.WHILE,
         TokenType.PUSH,
@@ -648,6 +653,9 @@ class Parser(object):
         elif l == TokenType.DIV:
             self.match(TokenType.DIV)
             return Div
+        elif l == TokenType.MOD:
+            self.match(TokenType.MOD)
+            return Mod
         elif l == TokenType.WHILE:
             self.match(TokenType.WHILE)
             return While
@@ -789,6 +797,17 @@ class Div(BinOp):
 
     def accept(self, visitor):
         return visitor.visit_div(self)
+
+
+class Mod(BinOp):
+    def __init__(self, first, second):
+        if not (issubclass(type(first), Node) and issubclass(type(second), Node)):
+            raise TypeError
+        self.first = first
+        self.second = second
+
+    def accept(self, visitor):
+        return visitor.visit_mod(self)
 
 
 class Eq(BinOp):
@@ -1215,6 +1234,9 @@ class Visitor(object):
     def visit_div(self, node):
         raise NotImplementedError
 
+    def visit_mod(self, node):
+        raise NotImplementedError
+
     def visit_eq(self, node):
         raise NotImplementedError
 
@@ -1335,6 +1357,11 @@ class Printer(Visitor):
         if not type(node) is Div:
             raise TypeError
         return "(%s %s %s)" % (TokenType.DIV.value, self(node.first), self(node.second))
+
+    def visit_mod(self, node):
+        if not type(node) is Mod:
+            raise TypeError
+        return "(%s %s %s)" % (TokenType.MOD.value, self(node.first), self(node.second))
 
     def visit_eq(self, node):
         if not type(node) is Eq:
@@ -1646,6 +1673,11 @@ class Evaluator(Visitor):
         if not type(node) is Div:
             raise TypeError
         return int(self(node.first) / self(node.second))
+
+    def visit_mod(self, node):
+        if not type(node) is Mod:
+            raise TypeError
+        return self(node.first) % self(node.second)
 
     def visit_eq(self, node):
         if not type(node) is Eq:
