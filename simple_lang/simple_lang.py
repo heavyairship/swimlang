@@ -86,7 +86,7 @@
 # | "[\x00-\x7F]+"
 #
 # v -> (variable) # FixMe: var/id should be different
-# | [a-zA-Z]+[a-zA-Z0-9_]*/{True, False}
+# | [a-zA-Z_]+[a-zA-Z0-9_]*/{True, False}
 
 import enum
 import json
@@ -130,7 +130,7 @@ def alphanumeric(val):
 def valid_var(val):
     if val is None or val == '':
         return False
-    if not alpha(val[0]):
+    if not alpha(val[0]) and val[0] != '_':
         return False
     for c in val:
         if not (alphanumeric(c) or c == '_'):
@@ -306,7 +306,7 @@ class Tokenizer(object):
         return True
 
     def match_var(self):
-        if not alpha(self.peek()):
+        if not valid_var(self.peek()):
             return False
         var = ""
         while alphanumeric(self.peek()) or self.peek() == '_':
