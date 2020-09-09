@@ -118,32 +118,32 @@
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"hi"
   "key":3
+  "val":"hi"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"yo"
   "key":1
+  "val":"yo"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
 (set bst (insert_bst bst {
-  "val":"sup"
   "key":5
+  "val":"sup"
 }));
 (print_bst bst);
 (print "****");
