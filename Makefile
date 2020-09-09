@@ -30,7 +30,7 @@ lint:
 	simplfmt examples/print_primes.sl && \
 	simplfmt examples/boomerang.sl && \
 	simplfmt examples/gcd_lcm.sl && \
-	simplfmt examples/flatten.sl && \
+	simplfmt examples/nested_len.sl && \
 	simplfmt examples/type_ex.sl && \
 	simplfmt examples/choose.sl && \
 	simplfmt examples/distance_to_vowel.sl && \
@@ -55,7 +55,7 @@ check: clean uninstall install
 	echo "\nrunning bst.sl" && simpl examples/print_primes.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/boomerang.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/gcd_lcm.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/flatten.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/nested_len.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/type_ex.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/choose.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/distance_to_vowel.sl --verbose && \
