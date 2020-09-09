@@ -6,6 +6,8 @@
 # FixMe: should if/while create their own lexical scopes?
 # FixMe: always re-wrap primitives (e.g. int -> Int)?
 # FixMe: add len keyword
+# FixMe: fix issue where each closure get's a copy of its mutable environment
+# FixMe: make most of the keyword operators built-in functions rather than syntax
 #
 # Comments start with # and extend until the end of line.
 #
