@@ -86,7 +86,7 @@
 # | "[\x00-\x7F]+"
 #
 # v -> (variable) # FixMe: var/id should be different
-# | [a-zA-Z_]+[a-zA-Z0-9_]*/{True, False}
+# | [a-zA-Z_]+[a-zA-Z0-9_]*\{True, False, None}
 
 import enum
 import json
