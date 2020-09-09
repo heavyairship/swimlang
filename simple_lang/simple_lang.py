@@ -4,6 +4,7 @@
 # FixMe: add tail recursion
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
+# FixMe: always re-wrap primitives (e.g. int -> Int)?
 #
 # Comments start with # and extend until the end of line.
 #
@@ -52,6 +53,7 @@
 # | tail
 # | print
 # | keys
+# | type
 #
 # BOP -> (binary operator)
 # | &&
@@ -188,6 +190,7 @@ class TokenType(enum.Enum):
     GET = "get"
     PUT = "put"
     KEYS = "keys"
+    TYPE = "type"
     PRINT = "print"
     TRUE = "True"
     FALSE = "False"
@@ -226,7 +229,8 @@ KEYWORDS = [
     TokenType.GET.value,
     TokenType.PUT.value,
     TokenType.KEYS.value,
-    TokenType.PRINT.value
+    TokenType.PRINT.value,
+    TokenType.TYPE.value
 ]
 
 
@@ -413,7 +417,7 @@ class Parser(object):
                          TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE, TokenType.NIL]).union(first_b)
 
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
-                           TokenType.TAIL, TokenType.KEYS, TokenType.PRINT])
+                           TokenType.TAIL, TokenType.KEYS, TokenType.PRINT, TokenType.TYPE])
 
     first_BOP = frozenset([
         TokenType.AND,
@@ -612,6 +616,9 @@ class Parser(object):
         elif l == TokenType.KEYS:
             self.match(TokenType.KEYS)
             return Keys
+        elif l == TokenType.TYPE:
+            self.match(TokenType.TYPE)
+            return Type
         else:
             raise ValueError
 
@@ -1122,6 +1129,16 @@ class Keys(Node):
         return visitor.visit_keys(self)
 
 
+class Type(Node):
+    def __init__(self, arg):
+        if not issubclass(type(arg), Node):
+            raise TypeError
+        self.arg = arg
+
+    def accept(self, visitor):
+        return visitor.visit_type(self)
+
+
 class List(Node):
     # FixMe: don't expose P_List internals?
     def __init__(self, elements):
@@ -1319,6 +1336,9 @@ class Visitor(object):
         raise NotImplementedError
 
     def visit_print(self, node):
+        raise NotImplementedError
+
+    def visit_type(self, ndoe):
         raise NotImplementedError
 
     def visit_nil(self, node):
@@ -1524,6 +1544,11 @@ class Printer(Visitor):
         if not type(node) is Keys:
             raise TypeError
         return (TokenType.LEFT_PAREN.value + TokenType.KEYS.value + " " + self(node.m) + TokenType.RIGHT_PAREN.value)
+
+    def visit_type(self, node):
+        if not type(node) is Type:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.TYPE.value + " " + self(node.arg) + TokenType.RIGHT_PAREN.value)
 
     def visit_list(self, node):
         if not type(node) is List:
@@ -1937,6 +1962,12 @@ class Evaluator(Visitor):
             raise TypeError
         print(self(node.arg))
         return Nil.instance()
+
+    def visit_type(self, node):
+        if not type(node) is Type:
+            raise TypeError
+        arg = self(node.arg)
+        return type(arg).__name__
 
     def visit_nil(self, node):
         if not type(node) is Nil:

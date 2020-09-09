@@ -30,6 +30,8 @@ lint:
 	simplfmt examples/print_primes.sl && \
 	simplfmt examples/boomerang.sl && \
 	simplfmt examples/gcd_lcm.sl && \
+	simplfmt examples/flatten.sl && \
+	simplfmt examples/type_ex.sl && \
 	simplfmt examples/times_table.sl
 
 check: clean uninstall install
@@ -50,6 +52,8 @@ check: clean uninstall install
 	echo "\nrunning bst.sl" && simpl examples/print_primes.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/boomerang.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/gcd_lcm.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/flatten.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/type_ex.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install

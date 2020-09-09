@@ -5,3 +5,4 @@ playground.sl
 build
 simple_lang.egg-info
 dist
+.vscode/*
