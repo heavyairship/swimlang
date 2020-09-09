@@ -34,6 +34,7 @@ lint:
 	simplfmt examples/type_ex.sl && \
 	simplfmt examples/choose.sl && \
 	simplfmt examples/distance_to_vowel.sl && \
+	simplfmt examples/list_concat.sl && \
 	simplfmt examples/times_table.sl
 
 check: clean uninstall install
@@ -58,6 +59,7 @@ check: clean uninstall install
 	echo "\nrunning bst.sl" && simpl examples/type_ex.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/choose.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/distance_to_vowel.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/list_concat.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
