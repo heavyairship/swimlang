@@ -27,6 +27,7 @@ lint:
 	simplfmt examples/maps.sl && \
 	simplfmt examples/map_reduce.sl && \
 	simplfmt examples/fizz_buzz.sl && \
+	simplfmt examples/print_primes.sl && \
 	simplfmt examples/times_table.sl
 
 check: clean uninstall install
@@ -44,6 +45,7 @@ check: clean uninstall install
 	echo "\nrunning map_reduce.sl" && simpl examples/map_reduce.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/bst.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/times_table.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/print_primes.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
