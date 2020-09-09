@@ -28,6 +28,7 @@ lint:
 	simplfmt examples/map_reduce.sl && \
 	simplfmt examples/fizz_buzz.sl && \
 	simplfmt examples/print_primes.sl && \
+	simplfmt examples/boomerang.sl && \
 	simplfmt examples/times_table.sl
 
 check: clean uninstall install
@@ -46,6 +47,7 @@ check: clean uninstall install
 	echo "\nrunning bst.sl" && simpl examples/bst.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/times_table.sl --verbose && \
 	echo "\nrunning bst.sl" && simpl examples/print_primes.sl --verbose && \
+	echo "\nrunning bst.sl" && simpl examples/boomerang.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
