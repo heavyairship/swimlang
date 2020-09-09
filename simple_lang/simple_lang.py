@@ -5,6 +5,7 @@
 # FixMe: add messages for parse/eval errors
 # FixMe: should if/while create their own lexical scopes?
 # FixMe: always re-wrap primitives (e.g. int -> Int)?
+# FixMe: add len keyword
 #
 # Comments start with # and extend until the end of line.
 #
