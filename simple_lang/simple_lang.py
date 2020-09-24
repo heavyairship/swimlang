@@ -9,7 +9,7 @@
 # FixMe: fix issue where each closure gets a copy of its mutable environment
 # FixMe: make most of the keyword operators built-in functions rather than syntax
 # FixMe: add in keyword
-# FixMe: should strings just be lists of chars?
+# FixMe: add arrays?
 #
 # Comments start with # and extend until the end of line.
 #
