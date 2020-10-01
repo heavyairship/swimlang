@@ -3,7 +3,7 @@
 PYTHON = /usr/bin/python3
 
 clean:
-	rm -rf __pycache__ *.pyc swimlang/__pycache__ swimlang/*.pc build/ dist/ swimlang.egg-info
+	rm -rf __pycache__ *.pyc swimlang/__pycache__ swimlang/*.pyc build/ dist/ swimlang.egg-info
 
 install:
 	pip3 install . --user
