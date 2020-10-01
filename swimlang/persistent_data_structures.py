@@ -3,10 +3,6 @@
 # Persistent List
 ##################################################################################
 
-
-import pdb
-
-
 class P_List(object):
     # FixMe: add [] operator
     # FixMe: add in operator

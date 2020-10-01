@@ -1,4 +1,5 @@
 from swimlang.swimlang import *
+from swimlang.ast import *
 
 
 def visitors():
