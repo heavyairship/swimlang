@@ -1,4 +1,7 @@
-from swimlang.swimlang import *
+from swimlang.tokenizer import Tokenizer
+from swimlang.parser import Parser
+from swimlang.printer import Printer
+from swimlang.evaluator import Evaluator
 from swimlang.ast import *
 
 

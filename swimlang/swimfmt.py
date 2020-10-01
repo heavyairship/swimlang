@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
-import swimlang.swimlang as sl
+from swimlang.tokenizer import Tokenizer
+from swimlang.parser import Parser
+from swimlang.printer import Printer
 
 import argparse
 
@@ -11,8 +13,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with open(args.filename) as f:
         src = f.read()
-        tokens = sl.Tokenizer(src).tokenize()
-        ast = sl.Parser(tokens).parse()
-        out = sl.Printer()(ast)
+        tokens = Tokenizer(src).tokenize()
+        ast = Parser(tokens).parse()
+        out = Printer()(ast)
     with open(args.filename, "w") as f:
         f.write(out)

@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-import swimlang.swimlang as sl
+from swimlang.interpreter import Interpreter
 
 import argparse
 import sys
@@ -15,4 +15,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
     with open(args.filename) as f:
         src = f.read()
-        print(sl.Interpreter(src).interpret(verbose=args.verbose))
+        print(Interpreter(src).interpret(verbose=args.verbose))
