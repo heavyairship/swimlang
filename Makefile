@@ -3,68 +3,68 @@
 PYTHON = /usr/bin/python3
 
 clean:
-	rm -rf __pycache__ *.pyc simple_lang/__pycache__ simple_lang/*pc build/ dist/ simple_lang.egg-info
+	rm -rf __pycache__ *.pyc swimlang/__pycache__ swimlang/*.pc build/ dist/ swimlang.egg-info
 
 install:
 	pip3 install . --user
-	cp simple_lang/simpl.py /usr/local/bin/simpl
-	cp simple_lang/simplfmt.py /usr/local/bin/simplfmt
+	cp ./swimlang/swim.py /usr/local/bin/swim
+	cp ./swimlang/swimfmt.py /usr/local/bin/swimfmt
 
 uninstall:
-	pip3 uninstall -y simple_lang
-	rm /usr/local/bin/simpl
-	rm /usr/local/bin/simplfmt
+	pip3 uninstall -y swimlang
+	rm -f /usr/local/bin/swim
+	rm -f /usr/local/bin/swimfmt
 
 lint:
-	simplfmt examples/log_2.sl && \
-	simplfmt examples/call_test.sl && \
-	simplfmt examples/factorial.sl && \
-	simplfmt examples/factorial_rec.sl && \
-	simplfmt examples/higher_order.sl && \
-	simplfmt examples/list_example.sl && \
-	simplfmt examples/test.sl && \
-	simplfmt examples/bst.sl && \
-	simplfmt examples/maps.sl && \
-	simplfmt examples/map_reduce.sl && \
-	simplfmt examples/fizz_buzz.sl && \
-	simplfmt examples/print_primes.sl && \
-	simplfmt examples/boomerang.sl && \
-	simplfmt examples/gcd_lcm.sl && \
-	simplfmt examples/nested_len.sl && \
-	simplfmt examples/type_ex.sl && \
-	simplfmt examples/choose.sl && \
-	simplfmt examples/distance_to_vowel.sl && \
-	simplfmt examples/list_concat.sl && \
-	simplfmt examples/prod_of_digit.sl && \
-	simplfmt examples/hanoi.sl && \
-	simplfmt examples/times_table.sl
+	swimfmt examples/log_2.sl && \
+	swimfmt examples/call_test.sl && \
+	swimfmt examples/factorial.sl && \
+	swimfmt examples/factorial_rec.sl && \
+	swimfmt examples/higher_order.sl && \
+	swimfmt examples/list_example.sl && \
+	swimfmt examples/test.sl && \
+	swimfmt examples/bst.sl && \
+	swimfmt examples/maps.sl && \
+	swimfmt examples/map_reduce.sl && \
+	swimfmt examples/fizz_buzz.sl && \
+	swimfmt examples/print_primes.sl && \
+	swimfmt examples/boomerang.sl && \
+	swimfmt examples/gcd_lcm.sl && \
+	swimfmt examples/nested_len.sl && \
+	swimfmt examples/type_ex.sl && \
+	swimfmt examples/choose.sl && \
+	swimfmt examples/distance_to_vowel.sl && \
+	swimfmt examples/list_concat.sl && \
+	swimfmt examples/prod_of_digit.sl && \
+	swimfmt examples/hanoi.sl && \
+	swimfmt examples/times_table.sl
 
 check: clean uninstall install
 	$(MAKE) lint
 	(echo "\nrunning test.py" && $(PYTHON) tests/test.py && \
-	echo "\nrunning test.sl" && simpl examples/test.sl --verbose && \
-	echo "\nrunning factorial.sl" && simpl examples/factorial.sl --verbose && \
-	echo "\nrunning log_2.sl" && simpl examples/log_2.sl --verbose && \
-	echo "\nrunning higher_order.sl" && simpl examples/higher_order.sl --verbose && \
-	echo "\nrunning factorial_rec.sl" && simpl examples/factorial_rec.sl --verbose && \
-	echo "\nrunning call_test.sl" && simpl examples/call_test.sl --verbose && \
-	echo "\nrunning list_example.sl" && simpl examples/list_example.sl --verbose && \
-	echo "\nrunning maps.sl" && simpl examples/maps.sl --verbose && \
-	echo "\nrunning fizz_buzz.sl" && simpl examples/fizz_buzz.sl --verbose && \
-	echo "\nrunning map_reduce.sl" && simpl examples/map_reduce.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/bst.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/times_table.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/print_primes.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/boomerang.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/gcd_lcm.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/nested_len.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/type_ex.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/choose.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/distance_to_vowel.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/list_concat.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/prod_of_digit.sl --verbose && \
-	echo "\nrunning bst.sl" && simpl examples/hanoi.sl --verbose && \
+	echo "\nrunning test.sl" && swim examples/test.sl --verbose && \
+	echo "\nrunning factorial.sl" && swim examples/factorial.sl --verbose && \
+	echo "\nrunning log_2.sl" && swim examples/log_2.sl --verbose && \
+	echo "\nrunning higher_order.sl" && swim examples/higher_order.sl --verbose && \
+	echo "\nrunning factorial_rec.sl" && swim examples/factorial_rec.sl --verbose && \
+	echo "\nrunning call_test.sl" && swim examples/call_test.sl --verbose && \
+	echo "\nrunning list_example.sl" && swim examples/list_example.sl --verbose && \
+	echo "\nrunning maps.sl" && swim examples/maps.sl --verbose && \
+	echo "\nrunning fizz_buzz.sl" && swim examples/fizz_buzz.sl --verbose && \
+	echo "\nrunning map_reduce.sl" && swim examples/map_reduce.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/bst.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/times_table.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/print_primes.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/boomerang.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/gcd_lcm.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/nested_len.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/type_ex.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/choose.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/distance_to_vowel.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/list_concat.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/prod_of_digit.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/hanoi.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
-	simpl playground.sl --verbose
+	swim playground.sl --verbose

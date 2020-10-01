@@ -1,4 +1,4 @@
-from simple_lang.simple_lang import *
+from swimlang.swimlang import *
 
 
 def visitors():

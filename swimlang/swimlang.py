@@ -1,4 +1,4 @@
-# SimpleLang
+# swimlang
 #
 # FixMe: make evaluation iterative not recursive to avoid max recursion depth errors
 # FixMe: add tail recursion
@@ -98,7 +98,7 @@
 import enum
 import json
 import pdb
-from simple_lang.persistent_data_structures import *
+from swimlang.persistent_data_structures import *
 
 ##################################################################################
 # Utility functions

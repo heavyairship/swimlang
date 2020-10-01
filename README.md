@@ -1,5 +1,5 @@
-# SimpleLang
-Simple functional programming language interpreter for fun! Supports (higher order) functions, closures, currying, variable bindings with lexical scoping rules, lists, maps, arithmetic, boolean logic, strings, while-loops, conditionals, sequencing, etc. Lists and maps are implemented with persistent data structures.
+# swim
+A simple functional programming language and interpreter. Supports (higher order) functions, closures, currying, variable bindings with lexical scoping rules, lists, maps, arithmetic, boolean logic, strings, while-loops, conditionals, sequencing, etc. Lists and maps are persistent data structures.
 
 ### Here's an example
 
