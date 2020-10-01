@@ -3,7 +3,7 @@
 ##################################################################################
 
 from swimlang.util import valid_var
-from swimlang.persistent_data_structures import *
+from swimlang.pdstruct import *
 from swimlang.tokenizer import TokenType
 
 
