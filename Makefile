@@ -37,10 +37,11 @@ lint:
 	swimfmt examples/list_concat.sl && \
 	swimfmt examples/prod_of_digit.sl && \
 	swimfmt examples/hanoi.sl && \
+	swimfmt examples/fibstr.sl && \
 	swimfmt examples/times_table.sl
 
 check: clean uninstall install
-	$(MAKE) lint
+	#$(MAKE) lint
 	(echo "\nrunning test.py" && $(PYTHON) tests/test.py && \
 	echo "\nrunning test.sl" && swim examples/test.sl --verbose && \
 	echo "\nrunning factorial.sl" && swim examples/factorial.sl --verbose && \
@@ -64,6 +65,7 @@ check: clean uninstall install
 	echo "\nrunning bst.sl" && swim examples/list_concat.sl --verbose && \
 	echo "\nrunning bst.sl" && swim examples/prod_of_digit.sl --verbose && \
 	echo "\nrunning bst.sl" && swim examples/hanoi.sl --verbose && \
+	echo "\nrunning bst.sl" && swim examples/fibstr.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
