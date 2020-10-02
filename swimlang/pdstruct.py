@@ -89,9 +89,8 @@ class P_List(object):
         return self._size
 
 ##################################################################################
-# P_Tree
+# Persistent Tree
 ##################################################################################
-
 
 class P_Tree(object):
     # FixMe: change this from a vanilla BST to a RBTree
