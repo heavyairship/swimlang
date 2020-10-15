@@ -10,9 +10,10 @@ import cmd
 import sys
 import traceback
 
-INIT_PROMPT = "λ "
-CONT_PROMPT = "_ "
+INIT_PROMPT = "><`> "
+CONT_PROMPT = "~~~~ "
 STOP = "."
+RETURN = "---> "
 
 
 class Repl(cmd.Cmd):
@@ -32,20 +33,22 @@ type `.` and hit enter to finish an expression
         if self.buffer is None and line in ["(exit)", "EOF"]:
             sys.exit()
 
-        line = line.strip()
+        # Add back newline since it is a valid separator.
+        line += "\n"
 
         if self.buffer is None:
             self.buffer = line
         else:
             self.buffer += line
 
-        if len(self.buffer) and self.buffer[-1] == STOP:
-            expr = self.buffer[:-1]
+        stripped_buffer = self.buffer.strip()
+        if len(stripped_buffer) and stripped_buffer[-1] == STOP:
+            expr = stripped_buffer[:-1]
             try:
                 tokens = Tokenizer(expr).tokenize()
                 ast = Parser(tokens).parse()
                 res = self.evaluator(ast)
-                print(res)
+                print(RETURN + str(res))
             except:
                 traceback.print_exc()
             finally:
