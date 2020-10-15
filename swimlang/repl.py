@@ -18,11 +18,12 @@ RETURN = "---> "
 
 class Repl(cmd.Cmd):
     intro = """
+><`>  ><`>  ><`> 
 welcome  to  swim 
 ><`>  ><`>  ><`> 
 
-type `(exit)` to exit
-type `.` and hit enter to finish an expression
+type (exit) to exit
+type . and hit enter to finish an expression
 """
     prompt = INIT_PROMPT
     done = False
