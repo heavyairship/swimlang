@@ -156,7 +156,9 @@ class Tokenizer(object):
             return False
         val = ""
         while self.peek() and self.peek().isascii():
-            if self.peek() == QUOTE and (len(val) == 0 or val[-1] is not '\\'):
+            prev_is_not_escape = len(val) == 0 or val[-1] is not '\\'
+            prev_is_double_escape = len(val) >= 2 and val[-2:] == "\\\\"
+            if self.peek() == QUOTE and (prev_is_not_escape or prev_is_double_escape):
                 break
             val += self.next()
         if not self.match(QUOTE):

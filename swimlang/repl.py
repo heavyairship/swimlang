@@ -34,6 +34,9 @@ type . and hit enter to finish an expression
         if self.buffer is None and line in ["(exit)", "EOF"]:
             sys.exit()
 
+        if self.buffer is None and line == "":
+            return line
+
         # Add back newline since it is a valid separator.
         line += "\n"
 
