@@ -27,7 +27,7 @@
 # | (UOP E)
 # | (BOP E E)
 # | (TOP E E E)
-# | E;E1
+# | E;E
 #
 # E1 -> (expression helper)
 # | ε
@@ -95,7 +95,7 @@
 # | "[\x00-\x7F]+"
 #
 # v -> (variable) # FixMe: var/id should be different
-# | [a-zA-Z_]+[a-zA-Z0-9_]*\{True, False, None}
+# | [a-zA-Z_]+[a-zA-Z0-9_]*\{True, False, Nil}
 
 from swimlang.tokenizer import TokenType
 from swimlang.ast import *
