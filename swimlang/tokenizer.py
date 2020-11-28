@@ -190,8 +190,12 @@ class Tokenizer(object):
             for idx, char in enumerate(line):
                 if not in_quotes and char == QUOTE:
                     in_quotes = True
-                elif in_quotes and char == QUOTE and line[idx-1] != '\\':
-                    in_quotes = False
+                elif in_quotes and char == QUOTE:
+                    prev_is_not_escape = idx == 0 or line[idx-1] is not '\\'
+                    prev_is_double_escape = (
+                        idx >= 2 and line[idx-2:idx] == "\\\\")
+                    in_quotes = not (
+                        prev_is_not_escape or prev_is_double_escape)
                 if char == COMMENT and not in_quotes:
                     out.append(line[:idx])
                     found_comment = True
