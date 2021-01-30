@@ -385,7 +385,7 @@ class Evaluator(Visitor):
         if not type(node) is Type:
             raise TypeError
         arg = self(node.arg)
-        return type(arg).__name__
+        return type(arg)
 
     def visit_nil(self, node):
         if not type(node) is Nil:
