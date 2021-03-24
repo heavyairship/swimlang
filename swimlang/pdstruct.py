@@ -218,7 +218,7 @@ class P_Tree(object):
             out._size = 1
         else:
             out._size = self._size
-            out._root = self._root.put(self, key, val)
+            out._root = self._root.put(out, key, val)
         return out
 
     def get(self, key):
