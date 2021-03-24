@@ -2,6 +2,10 @@
 # AST evaluator
 ##################################################################################
 
+# FixMe: evaluations should always result in an instance of Node, never
+# a python int, str, etc. This way, we won't have to worry about
+# wrapping/unwrapping in an ad hoc way.
+
 import enum
 import json
 from swimlang.ast import *
@@ -384,8 +388,7 @@ class Evaluator(Visitor):
     def visit_type(self, node):
         if not type(node) is Type:
             raise TypeError
-        arg = self(node.arg)
-        return type(arg)
+        return type(Node.wrap(self(node.arg)))
 
     def visit_nil(self, node):
         if not type(node) is Nil:
