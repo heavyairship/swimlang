@@ -29,6 +29,13 @@ class Node(object):
     def accept(self, visitor):
         pass
 
+class UOp(Node):
+    def accept(self, visitor):
+        pass
+
+class Exit(UOp):
+    def accept(self, visitor):
+        return visitor.visit_exit(self)
 
 class BinOp(Node):
     def accept(self, visitor):

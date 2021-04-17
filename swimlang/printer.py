@@ -102,6 +102,11 @@ class Printer(Visitor):
                 '\n' + indent + '  ' + fbranch +
                 '\n' + indent + TokenType.RIGHT_PAREN.value)
 
+    def visit_exit(self, node):
+        if not type(node) is Exit:
+            raise TypeError
+        return TokenType.LEFT_PAREN.value + TokenType.EXIT.value + TokenType.RIGHT_PAREN.value
+        
     def visit_not(self, node):
         if not type(node) is Not:
             raise TypeError

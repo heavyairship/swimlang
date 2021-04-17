@@ -11,6 +11,7 @@ COMMENT = "#"
 
 @enum.unique
 class TokenType(enum.Enum):
+    EXIT = "exit"
     WHILE = "while"
     LEFT_PAREN = "("
     RIGHT_PAREN = ")"
@@ -69,6 +70,7 @@ class Token(object):
 
 
 KEYWORDS = [
+    TokenType.EXIT.value,
     TokenType.WHILE.value,
     TokenType.IF.value,
     TokenType.FUN.value,

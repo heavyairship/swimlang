@@ -24,10 +24,11 @@
 # | (let v E)
 # | (mut v E)
 # | (set v E)
+# | (NOP)
 # | (UOP E)
 # | (BOP E E)
 # | (TOP E E E)
-# | E;E
+# | E;E1
 #
 # E1 -> (expression helper)
 # | ε
@@ -53,6 +54,9 @@
 # L -> (expression list)
 # | ε
 # | E L
+#
+# NOP -> (nullary operator)
+# | exit
 #
 # UOP -> (unary operator)
 # | !
@@ -107,6 +111,8 @@ class Parser(object):
     first_T = frozenset([TokenType.INT, TokenType.VAR, TokenType.STR,
                          TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE, TokenType.NIL]).union(first_b)
 
+    first_NOP = frozenset([TokenType.EXIT])
+    
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
                            TokenType.TAIL, TokenType.KEYS, TokenType.PRINT, TokenType.TYPE])
 
@@ -187,6 +193,10 @@ class Parser(object):
                 e = self.E()
                 self.match(TokenType.RIGHT_PAREN)
                 e = Set(v, e)
+            elif l2 in self.first_NOP:
+                nop = self.NOP()
+                self.match(TokenType.RIGHT_PAREN)
+                e = nop()
             elif l2 in self.first_UOP:
                 uop = self.UOP()
                 e = self.E()
@@ -289,6 +299,14 @@ class Parser(object):
             return lst
         else:
             return []
+
+    def NOP(self):
+        l = self.lookahead()
+        if l == TokenType.EXIT:
+            self.match(TokenType.EXIT)
+            return Exit
+        else:
+            raise ValueError
 
     def UOP(self):
         l = self.lookahead()

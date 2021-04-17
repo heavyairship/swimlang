@@ -22,7 +22,7 @@ class Repl(cmd.Cmd):
 welcome  to  swim 
 ><`>  ><`>  ><`> 
 
-type (exit) to exit
+type (exit). to exit
 type . and hit enter to finish an expression
 """
     prompt = INIT_PROMPT
@@ -31,7 +31,7 @@ type . and hit enter to finish an expression
     evaluator = Evaluator()
 
     def precmd(self, line):
-        if self.buffer is None and line in ["(exit)", "EOF"]:
+        if self.buffer is None and line in ["EOF"]:
             sys.exit()
 
         if self.buffer is None and line == "":
@@ -53,6 +53,8 @@ type . and hit enter to finish an expression
                 ast = Parser(tokens).parse()
                 res = self.evaluator(ast)
                 print(RETURN + str(res))
+            except SystemExit as e:
+                sys.exit(e.code)
             except:
                 traceback.print_exc()
             finally:

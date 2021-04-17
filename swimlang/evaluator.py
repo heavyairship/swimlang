@@ -8,6 +8,7 @@
 
 import enum
 import json
+import sys
 from swimlang.ast import *
 from swimlang.visitor import *
 from swimlang.tokenizer import QUOTE
@@ -130,6 +131,11 @@ class Evaluator(Visitor):
         if not type(node) is Eq:
             raise TypeError
         return self(node.first) == self(node.second)
+
+    def visit_exit(self, node):
+        if not type(node) is Exit:
+            raise TypeError
+        sys.exit(0)
 
     def visit_not_eq(self, node):
         if not type(node) is NotEq:
