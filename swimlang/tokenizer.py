@@ -126,6 +126,7 @@ class Tokenizer(object):
         if self.peek(n) == s:
             self.idx += n
             return True
+        return False
 
     def match_keyword(self):
         for kw in KEYWORDS:
