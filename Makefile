@@ -54,18 +54,18 @@ check: clean uninstall install
 	echo "\nrunning fizz_buzz.sl" && swim examples/fizz_buzz.sl --verbose && \
 	echo "\nrunning map_reduce.sl" && swim examples/map_reduce.sl --verbose && \
 	echo "\nrunning bst.sl" && swim examples/bst.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/times_table.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/print_primes.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/boomerang.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/gcd_lcm.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/nested_len.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/type_ex.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/choose.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/distance_to_vowel.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/list_concat.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/prod_of_digit.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/hanoi.sl --verbose && \
-	echo "\nrunning bst.sl" && swim examples/fibstr.sl --verbose && \
+	echo "\nrunning times_table.sl" && swim examples/times_table.sl --verbose && \
+	echo "\nrunning print_primes.sl" && swim examples/print_primes.sl --verbose && \
+	echo "\nrunning boomerang.sl" && swim examples/boomerang.sl --verbose && \
+	echo "\nrunning gcd_lcm.sl" && swim examples/gcd_lcm.sl --verbose && \
+	echo "\nrunning nested_len.sl" && swim examples/nested_len.sl --verbose && \
+	echo "\nrunning type_ex.sl" && swim examples/type_ex.sl --verbose && \
+	echo "\nrunning choose.sl" && swim examples/choose.sl --verbose && \
+	echo "\nrunning distance_to_vowel.sl" && swim examples/distance_to_vowel.sl --verbose && \
+	echo "\nrunning list_concat.sl" && swim examples/list_concat.sl --verbose && \
+	echo "\nrunning prod_of_digit.sl" && swim examples/prod_of_digit.sl --verbose && \
+	echo "\nrunning hanoi.sl" && swim examples/hanoi.sl --verbose && \
+	echo "\nrunning fibstr.sl" && swim examples/fibstr.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install
