@@ -6,12 +6,12 @@ clean:
 	rm -rf __pycache__ *.pyc swimlang/__pycache__ swimlang/*.pyc build/ dist/ swimlang.egg-info
 
 install:
-	pip3 install . --user
+	pip install -v . --use-feature=in-tree-build
 	cp ./swimlang/swim.py /usr/local/bin/swim
 	cp ./swimlang/swimfmt.py /usr/local/bin/swimfmt
 
 uninstall:
-	pip3 uninstall -y swimlang
+	pip uninstall -y swimlang
 	rm -f /usr/local/bin/swim
 	rm -f /usr/local/bin/swimfmt
 

@@ -14,5 +14,5 @@ setuptools.setup(
     packages=['swimlang'],
     package_dir={'swimlang': 'swimlang'},
     package_data={'swimlang': []},
-    python_requires='>=3.6',
+    python_requires='>=3.9.5',
 )

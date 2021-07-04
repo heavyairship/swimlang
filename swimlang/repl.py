@@ -18,9 +18,9 @@ RETURN = "---> "
 
 class Repl(cmd.Cmd):
     intro = """
-><`>  ><`>  ><`> 
-welcome  to  swim 
-><`>  ><`>  ><`> 
+><`>  ><`>  ><`>
+welcome  to  swim
+><`>  ><`>  ><`>
 
 type (exit). to exit
 type . and hit enter to finish an expression
