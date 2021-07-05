@@ -386,6 +386,7 @@ class Map(Node):
         return visitor.visit_map(self)
 
     def __str__(self):
+        # FixMe: don't use Printer() here...
         from swimlang.printer import Printer
         return Printer()(self)
 
@@ -453,6 +454,7 @@ class List(Node):
         return visitor.visit_list(self)
 
     def __str__(self):
+        # FixMe: don't use Printer() here...
         from swimlang.printer import Printer
         return Printer()(self)
 
