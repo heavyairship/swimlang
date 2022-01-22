@@ -1,4 +1,5 @@
 # FixMe: add full README.md
+# FixMe: don't hardcode lint/check targets
 
 PYTHON = /usr/bin/python3
 
@@ -6,7 +7,7 @@ clean:
 	rm -rf __pycache__ *.pyc swimlang/__pycache__ swimlang/*.pyc build/ dist/ swimlang.egg-info
 
 install:
-	pip install -v . --use-feature=in-tree-build
+	pip install -v .
 	cp ./swimlang/swim.py /usr/local/bin/swim
 	cp ./swimlang/swimfmt.py /usr/local/bin/swimfmt
 
@@ -38,7 +39,8 @@ lint:
 	swimfmt examples/prod_of_digit.sl && \
 	swimfmt examples/hanoi.sl && \
 	swimfmt examples/fibstr.sl && \
-	swimfmt examples/times_table.sl
+	swimfmt examples/times_table.sl && \
+	swimfmt examples/str_head_tail.sl
 
 check: clean uninstall install
 	#$(MAKE) lint
@@ -66,6 +68,7 @@ check: clean uninstall install
 	echo "\nrunning prod_of_digit.sl" && swim examples/prod_of_digit.sl --verbose && \
 	echo "\nrunning hanoi.sl" && swim examples/hanoi.sl --verbose && \
 	echo "\nrunning fibstr.sl" && swim examples/fibstr.sl --verbose && \
+	echo "\nrunning str_head_tail.sl" && swim examples/str_head_tail.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install

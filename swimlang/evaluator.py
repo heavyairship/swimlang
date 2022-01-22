@@ -357,23 +357,33 @@ class Evaluator(Visitor):
         if not type(node) is Head:
             raise TypeError
         l = self(node.arg)
-        if not type(l) is List:
-            raise TypeError
-        if len(l.elements) <= 0:
-            raise ValueError
-        head = l.elements.head()
-        return self(head)
+        if type(l) is List:
+            if len(l.elements) <= 0:
+                raise ValueError
+            head = l.elements.head()
+            return self(head)
+        if type(l) is str:
+            if len(l) <= 0:
+                raise ValueError
+            else:
+                return l[0]
+        raise TypeError
 
     def visit_tail(self, node):
         if not type(node) is Tail:
             raise TypeError
         l = self(node.arg)
-        if not type(l) is List:
-            raise TypeError
-        if len(l.elements) <= 0:
-            raise ValueError
-        tail = l.elements.tail()
-        return List(tail)
+        if type(l) is List:
+            if len(l.elements) <= 0:
+                raise ValueError
+            tail = l.elements.tail()
+            return List(tail)
+        if type(l) is str:
+            if len(l) <= 0:
+                raise ValueError
+            else:
+                return l[1:]
+        raise TypeError
 
     def visit_push(self, node):
         if not type(node) is Push:
