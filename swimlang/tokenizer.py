@@ -159,7 +159,7 @@ class Tokenizer(object):
             return False
         val = ""
         while self.peek() and self.peek().isascii():
-            prev_is_not_escape = len(val) == 0 or val[-1] is not '\\'
+            prev_is_not_escape = len(val) == 0 or val[-1] != '\\'
             prev_is_double_escape = len(val) >= 2 and val[-2:] == "\\\\"
             if self.peek() == QUOTE and (prev_is_not_escape or prev_is_double_escape):
                 break
@@ -194,7 +194,7 @@ class Tokenizer(object):
                 if not in_quotes and char == QUOTE:
                     in_quotes = True
                 elif in_quotes and char == QUOTE:
-                    prev_is_not_escape = idx == 0 or line[idx-1] is not '\\'
+                    prev_is_not_escape = idx == 0 or line[idx-1] != '\\'
                     prev_is_double_escape = (
                         idx >= 2 and line[idx-2:idx] == "\\\\")
                     in_quotes = not (

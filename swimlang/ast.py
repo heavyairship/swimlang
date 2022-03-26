@@ -26,12 +26,12 @@ class Node(object):
         else:
             return e
 
-    def accept(self, visitor):
+    def accept(self, _):
         pass
 
 
 class UOp(Node):
-    def accept(self, visitor):
+    def accept(self, _):
         pass
 
 
@@ -41,7 +41,7 @@ class Exit(UOp):
 
 
 class BinOp(Node):
-    def accept(self, visitor):
+    def accept(self, _):
         pass
 
 
