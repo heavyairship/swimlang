@@ -40,6 +40,7 @@ lint:
 	swimfmt examples/hanoi.sl && \
 	swimfmt examples/fibstr.sl && \
 	swimfmt examples/times_table.sl && \
+	swimfmt examples/interview.sl && \
 	swimfmt examples/str_head_tail.sl
 
 check: clean uninstall install
@@ -69,6 +70,7 @@ check: clean uninstall install
 	echo "\nrunning hanoi.sl" && swim examples/hanoi.sl --verbose && \
 	echo "\nrunning fibstr.sl" && swim examples/fibstr.sl --verbose && \
 	echo "\nrunning str_head_tail.sl" && swim examples/str_head_tail.sl --verbose && \
+	echo "\nrunning str_head_tail.sl" && swim examples/interview.sl --verbose && \
 	echo "\ntests passed") || (echo "\ntests failed")
 	
 play: clean install

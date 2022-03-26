@@ -389,11 +389,15 @@ class Evaluator(Visitor):
         if not type(node) is Push:
             raise TypeError
         l = self(node.tail)
-        if not type(l) is List:
-            raise TypeError
-        tail = l.elements
-        head = Node.wrap(self(node.head))
-        return List(tail.push(head))
+        if type(l) is List:
+            tail = l.elements
+            head = Node.wrap(self(node.head))
+            return List(tail.push(head))
+        if type(l) is str:
+            tail = l
+            head = self(node.head)
+            return head + tail
+        raise TypeError
 
     def visit_print(self, node):
         if not type(node) is Print:
