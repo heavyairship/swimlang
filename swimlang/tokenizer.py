@@ -11,6 +11,7 @@ COMMENT = "#"
 
 @enum.unique
 class TokenType(enum.Enum):
+    INPUT = "input"
     EXIT = "exit"
     WHILE = "while"
     LEFT_PAREN = "("
@@ -70,6 +71,7 @@ class Token(object):
 
 
 KEYWORDS = [
+    TokenType.INPUT.value,
     TokenType.EXIT.value,
     TokenType.WHILE.value,
     TokenType.IF.value,

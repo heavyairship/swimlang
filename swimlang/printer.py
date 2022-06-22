@@ -245,6 +245,11 @@ class Printer(Visitor):
         return (TokenType.LEFT_PAREN.value + TokenType.PRINT.value + " " + self(node.arg) +
                 TokenType.RIGHT_PAREN.value)
 
+    def visit_input(self, node):
+        if not type(node) is Input:
+            raise TypeError
+        return (TokenType.LEFT_PAREN.value + TokenType.INPUT.value + TokenType.RIGHT_PAREN.value)
+
     def visit_nil(self, node):
         if not type(node) is Nil:
             raise TypeError

@@ -56,6 +56,7 @@
 # | E L
 #
 # NOP -> (nullary operator)
+# | input
 # | exit
 #
 # UOP -> (unary operator)
@@ -111,7 +112,7 @@ class Parser(object):
     first_T = frozenset([TokenType.INT, TokenType.VAR, TokenType.STR,
                          TokenType.LEFT_BRACKET, TokenType.LEFT_BRACE, TokenType.NIL]).union(first_b)
 
-    first_NOP = frozenset([TokenType.EXIT])
+    first_NOP = frozenset([TokenType.INPUT, TokenType.EXIT])
     
     first_UOP = frozenset([TokenType.NOT, TokenType.HEAD,
                            TokenType.TAIL, TokenType.KEYS, TokenType.PRINT, TokenType.TYPE])
@@ -302,7 +303,10 @@ class Parser(object):
 
     def NOP(self):
         l = self.lookahead()
-        if l == TokenType.EXIT:
+        if l == TokenType.INPUT:
+            self.match(TokenType.INPUT)
+            return Input
+        elif l == TokenType.EXIT:
             self.match(TokenType.EXIT)
             return Exit
         else:

@@ -505,6 +505,13 @@ class Print(Node):
     def accept(self, visitor):
         return visitor.visit_print(self)
 
+class Input(Node):
+    def __init__(self):
+        pass
+
+    def accept(self, visitor):
+        return visitor.visit_input(self)
+
 
 class Nil(Node):
     __instance__ = None

@@ -405,6 +405,11 @@ class Evaluator(Visitor):
         print(self(node.arg))
         return Nil.instance()
 
+    def visit_input(self, node):
+        if not type(node) is Input:
+            raise TypeError
+        return self(Str(input()))
+
     def visit_type(self, node):
         if not type(node) is Type:
             raise TypeError
